@@ -1,0 +1,1618 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>ERP Кондитерской фабрики</title>
+  <style>
+    :root {
+      --pink-main: #ec407a;
+      --pink-dark: #d81b60;
+      --pink-light: #fce4ec;
+      --purple-soft: #f3e5f5;
+      --bg-light: #fdf2f8;
+      --bg-dark: #1f1724;
+      --card-dark: #2b2134;
+      --text-main: #333;
+      --text-dark: #f5f5f5;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg-light);
+      margin: 0;
+      color: var(--text-main);
+      transition: background 0.2s, color 0.2s;
+    }
+
+    body.dark {
+      background: var(--bg-dark);
+      color: var(--text-dark);
+    }
+
+    header {
+      background: linear-gradient(90deg, #ec407a, #f06292);
+      color: #fff;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 20px;
+    }
+    .header-right {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      font-size: 13px;
+    }
+    .user-info {
+      opacity: 0.95;
+    }
+    .theme-toggle {
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.7);
+      padding: 4px 10px;
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .theme-toggle:hover {
+      background: rgba(255,255,255,0.25);
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 20px auto 40px;
+      padding: 0 12px;
+    }
+    h2 {
+      margin-top: 0;
+      color: #c2185b;
+    }
+    body.dark h2 {
+      color: #f48fb1;
+    }
+    h3 {
+      margin-top: 0;
+      color: #d81b60;
+    }
+    body.dark h3 {
+      color: #f8bbd0;
+    }
+    .screen {
+      display: none;
+    }
+    .screen.active {
+      display: block;
+    }
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+    body.dark .card {
+      background: var(--card-dark);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+
+    .form-row {
+      margin-bottom: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    label {
+      font-size: 13px;
+      color: #666;
+    }
+    body.dark label {
+      color: #ddd;
+    }
+    input[type="text"],
+    input[type="number"],
+    select {
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      font-size: 14px;
+      background: #fff;
+      color: #333;
+    }
+    body.dark input[type="text"],
+    body.dark input[type="number"],
+    body.dark select {
+      background: #3b2b4c;
+      border-color: #555;
+      color: #f5f5f5;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: 0.15s;
+      display: inline-block;
+    }
+    .btn-primary {
+      background: var(--pink-main);
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: var(--pink-dark);
+    }
+    .btn-secondary {
+      background: var(--purple-soft);
+      color: #6a1b9a;
+    }
+    .btn-secondary:hover {
+      background: #e1bee7;
+    }
+    body.dark .btn-secondary {
+      background: #4a355c;
+      color: #f3e5f5;
+    }
+    body.dark .btn-secondary:hover {
+      background: #5e4474;
+    }
+    .btn-sm {
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+    .muted {
+      font-size: 13px;
+      color: #777;
+    }
+    body.dark .muted {
+      color: #ccc;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th, td {
+      border-bottom: 1px solid #eee;
+      padding: 6px 4px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      font-weight: 600;
+      background: var(--pink-light);
+    }
+    tr:nth-child(even) td {
+      background: #fffdfd;
+    }
+    body.dark th {
+      background: #4a2a54;
+      border-bottom-color: #5c4168;
+    }
+    body.dark td {
+      border-bottom-color: #4a3a58;
+    }
+    body.dark tr:nth-child(even) td {
+      background: #2e2339;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1.1fr 1.1fr;
+      gap: 14px;
+    }
+    @media (max-width: 900px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .catalog {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    .catalog-item {
+      border-radius: 14px;
+      border: 1px solid #f8bbd0;
+      padding: 10px;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    body.dark .catalog-item {
+      background: #31233e;
+      border-color: #6a4c7e;
+    }
+    .catalog-item img {
+      width: 100%;
+      border-radius: 10px;
+      height: 120px;
+      object-fit: cover;
+    }
+    .catalog-item h4 {
+      margin: 4px 0 0;
+      font-size: 15px;
+    }
+    .price {
+      font-weight: 600;
+      margin: 4px 0 6px;
+      color: #c2185b;
+    }
+    body.dark .price {
+      color: #f48fb1;
+    }
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #fce4ec;
+      font-size: 11px;
+      color: #ad1457;
+    }
+    body.dark .tag {
+      background: #4a2a54;
+      color: #f8bbd0;
+    }
+
+    .badge-warn {
+      color: #c62828;
+      font-weight: 600;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .status-new {
+      background: #e3f2fd;
+      color: #1565c0;
+    }
+    .status-prod {
+      background: #fff3e0;
+      color: #ef6c00;
+    }
+    .status-ready {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+    .status-paid {
+      background: #f3e5f5;
+      color: #6a1b9a;
+    }
+    .status-issued {
+      background: #ede7f6;
+      color: #4527a0;
+    }
+    .status-unpaid {
+      background: #ffebee;
+      color: #c62828;
+    }
+    .status-other {
+      background: #eeeeee;
+      color: #555;
+    }
+
+    body.dark .status-new { background:#1e3a5f; color:#90caf9; }
+    body.dark .status-prod { background:#4e342e; color:#ffcc80; }
+    body.dark .status-ready { background:#1b5e20; color:#a5d6a7; }
+    body.dark .status-paid { background:#4a148c; color:#e1bee7; }
+    body.dark .status-issued { background:#283593; color:#c5cae9; }
+    body.dark .status-unpaid { background:#b71c1c; color:#ffcdd2; }
+    body.dark .status-other { background:#424242; color:#e0e0e0; }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      flex-wrap: wrap;
+    }
+    .toolbar .group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .toolbar label {
+      font-size: 12px;
+      color: #666;
+    }
+    body.dark .toolbar label {
+      color: #ddd;
+    }
+
+    /* Dashboard cards */
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .dash-card {
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      font-size: 13px;
+    }
+    body.dark .dash-card {
+      background: #2d2136;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.5);
+    }
+    .dash-card-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #888;
+      margin-bottom: 4px;
+    }
+    body.dark .dash-card-title {
+      color: #ccc;
+    }
+    .dash-card-value {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    .dash-card-sub {
+      font-size: 11px;
+      color: #999;
+    }
+    body.dark .dash-card-sub {
+      color: #bbb;
+    }
+
+    /* Toasts */
+    .toast-container {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 999;
+    }
+    .toast {
+      min-width: 200px;
+      max-width: 260px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-size: 13px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: toast-in 0.2s forwards;
+    }
+    .toast-success {
+      background: #43a047;
+    }
+    .toast-info {
+      background: #1976d2;
+    }
+    .toast-error {
+      background: #e53935;
+    }
+    .toast-close {
+      border: none;
+      background: transparent;
+      color: #fff;
+      cursor: pointer;
+      font-size: 14px;
+      margin-left: 8px;
+    }
+    @keyframes toast-in {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    @keyframes toast-out {
+      to {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 900;
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+    .modal {
+      background: #fff;
+      border-radius: 16px;
+      padding: 16px 18px;
+      max-width: 420px;
+      width: 90%;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+    }
+    body.dark .modal {
+      background: #2f2438;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .modal-header h3 {
+      margin: 0;
+    }
+    .modal-close {
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 18px;
+      color: #666;
+    }
+    body.dark .modal-close {
+      color: #ddd;
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>ERP-система кондитерской фабрики</h1>
+  <div class="header-right">
+    <button id="themeToggle" class="theme-toggle">☀️ Светлая</button>
+    <div class="user-info" id="headerUser">Не авторизован</div>
+  </div>
+</header>
+
+<main>
+
+  <!-- ВХОД -->
+  <section id="screen-login" class="screen active">
+    <h2>Вход в систему</h2>
+    <div class="card">
+      <form id="loginForm">
+        <div class="form-row">
+          <label>Имя пользователя</label>
+          <input type="text" id="loginName" placeholder="Например: Иванова А.А." required />
+        </div>
+        <div class="form-row">
+          <label>Роль</label>
+          <select id="loginRole">
+            <option value="client">Клиент</option>
+            <option value="admin">Администратор</option>
+            <option value="manager">Менеджер заказов</option>
+            <option value="accountant">Бухгалтер</option>
+            <option value="warehouse">Склад-менеджер</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Войти</button>
+      </form>
+      <p class="muted" style="margin-top:10px;">
+        Клиент видит только каталог и свои заказы. Остальные роли работают в административной части системы.
+      </p>
+    </div>
+  </section>
+
+  <!-- КЛИЕНТСКАЯ ЧАСТЬ -->
+  <section id="screen-client" class="screen">
+    <h2>Клиентская часть</h2>
+
+    <div class="card">
+      <p class="muted">
+        Выберите изделия, добавьте в корзину и оформите заказ. Оплата (наличные/карта) фиксируется в системе.
+      </p>
+    </div>
+
+    <div class="card">
+  <div class="toolbar">
+    <h3 style="margin:0;">Меню кондитерской</h3>
+    <div class="group">
+      <label for="catalogCategoryFilter">Категория:</label>
+      <select id="catalogCategoryFilter">
+        <option value="all">Все</option>
+        <option value="Торты">Торты</option>
+        <option value="Чизкейки">Чизкейки</option>
+        <option value="Пирожные">Пирожные</option>
+      </select>
+      
+      <label for="catalogSearchInput">Поиск:</label>
+      <input
+        type="text"
+        id="catalogSearchInput"
+        placeholder="Название изделия"
+        style="max-width:160px;"
+      />
+    </div>
+  </div>
+  <div id="catalog" class="catalog"></div>
+</div>
+
+    <div class="card">
+  <h3>Корзина</h3>
+  <table>
+    <thead>
+    <tr>
+      <th>Продукт</th>
+      <th>Кол-во</th>
+      <th>Цена</th>
+      <th>Сумма</th>
+      <th></th>
+    </tr>
+    </thead>
+    <tbody id="cartItemsBody"></tbody>
+  </table>
+  <p style="margin-top:8px;">
+    Итого: <b id="cartTotal">0 сом</b>
+  </p>
+
+  <div style="margin:8px 0;">
+    <span class="muted">Способ оплаты:</span><br />
+    <label style="font-size:13px; margin-right:10px;">
+      <input type="radio" name="paymentMethod" id="paymentMethodCash" value="наличные" checked />
+      Наличные
+    </label>
+    <label style="font-size:13px;">
+      <input type="radio" name="paymentMethod" id="paymentMethodCard" value="карта" />
+      Банковская карта
+    </label>
+  </div>
+
+  <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;">
+    <button id="btnCartCheckout" class="btn btn-primary">Оформить заказ</button>
+    <button id="btnCartClear" class="btn btn-secondary">Очистить корзину</button>
+  </div>
+</div>
+
+    <div class="card">
+      <h3>Мои заказы</h3>
+      <table>
+        <thead>
+        <tr>
+          <th>#</th>
+          <th>Дата</th>
+          <th>Состав</th>
+          <th>Сумма</th>
+          <th>Оплата</th>
+          <th>Статус</th>
+        </tr>
+        </thead>
+        <tbody id="clientOrdersBody"></tbody>
+      </table>
+    </div>
+
+    <button id="btnClientLogout" class="btn btn-secondary">Выйти</button>
+  </section>
+
+  <!-- АДМИНСКАЯ ПАНЕЛЬ -->
+  <section id="screen-admin" class="screen">
+    <h2>Админская панель</h2>
+
+    <div class="card">
+      <div class="dashboard">
+        <div class="dash-card">
+          <div class="dash-card-title">Всего заказов</div>
+          <div class="dash-card-value" id="dashTotalOrders">0</div>
+          <div class="dash-card-sub">Все статусы</div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-card-title">Оплачено</div>
+          <div class="dash-card-value" id="dashPaidOrders">0</div>
+          <div class="dash-card-sub" id="dashPaidAmount">0 сом</div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-card-title">Выдано заказов</div>
+          <div class="dash-card-value" id="dashIssuedOrders">0</div>
+          <div class="dash-card-sub">Выдан клиентам</div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-card-title">Склад</div>
+          <div class="dash-card-value" id="dashLowStock">0</div>
+          <div class="dash-card-sub">Позиции ниже минимума</div>
+        </div>
+      </div>
+      <p class="muted">
+        Административная часть объединяет блоки: заказы, склад сырья, поставщики, оплаты и отчётность.
+      </p>
+      <p class="muted" id="roleHint" style="margin-top:4px;"></p>
+    </div>
+
+    <div class="grid-2">
+      <div>
+        <div class="card" data-access="orders">
+          <h3>Сводка по заказам</h3>
+          <p>Всего заказов: <b id="adminTotalOrders">0</b></p>
+          <p>Неоплаченные: <b id="adminUnpaid">0</b></p>
+          <p>Общая сумма: <b id="adminTotalAmount">0 сом</b></p>
+        </div>
+
+        <div class="card" data-access="orders">
+          <h3>Создание заказа (вручную)</h3>
+          <form id="orderForm">
+            <div class="form-row">
+              <label>Клиент</label>
+              <input type="text" id="orderCustomer" placeholder="Имя клиента" required />
+            </div>
+            <div class="form-row">
+              <label>Продукт</label>
+              <select id="orderProductSelect"></select>
+            </div>
+            <div class="form-row">
+              <label>Количество</label>
+              <input type="number" id="orderQty" value="1" min="1" />
+            </div>
+            <button type="submit" class="btn btn-primary">Создать заказ</button>
+          </form>
+        </div>
+
+        <div class="card" data-access="suppliers">
+          <h3>Поставщики</h3>
+          <form id="supplierForm">
+            <div class="form-row">
+              <label>Название</label>
+              <input type="text" id="supplierName" placeholder="ООО «Сладкое сырьё»" />
+            </div>
+            <div class="form-row">
+              <label>Контакты</label>
+              <input type="text" id="supplierContact" placeholder="Телефон, e-mail" />
+            </div>
+            <button type="submit" class="btn btn-primary">Добавить</button>
+          </form>
+          <table style="margin-top:10px;">
+            <thead>
+            <tr>
+              <th>#</th>
+              <th>Название</th>
+              <th>Контакты</th>
+            </tr>
+            </thead>
+            <tbody id="suppliersBody"></tbody>
+          </table>
+        </div>
+
+        <div class="card" data-access="inventory">
+          <h3>Склад сырья</h3>
+          <form id="materialForm">
+            <div class="form-row">
+              <label>Наименование сырья</label>
+              <input type="text" id="materialName" placeholder="Мука" />
+            </div>
+            <div class="form-row">
+              <label>Количество (кг)</label>
+              <input type="number" id="materialDelta" value="10" min="1" />
+            </div>
+            <div class="form-row">
+              <label>Операция</label>
+              <select id="materialOp">
+                <option value="in">Поступление</option>
+                <option value="out">Списание</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Записать движение</button>
+          </form>
+          <table style="margin-top:10px;">
+            <thead>
+            <tr>
+              <th>#</th>
+              <th>Сырьё</th>
+              <th>Остаток (кг)</th>
+              <th>Минимум</th>
+            </tr>
+            </thead>
+            <tbody id="materialsBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div>
+        <div class="card" data-access="orders">
+          <div class="toolbar">
+            <h3 style="margin:0;">Список заказов</h3>
+            <div class="group">
+              <label for="adminOrdersFilter">Фильтр по статусу:</label>
+              <select id="adminOrdersFilter">
+                <option value="all">Все</option>
+                <option value="Новый">Новые</option>
+                <option value="В производстве">В производстве</option>
+                <option value="Готов">Готов</option>
+                <option value="Оплачен">Оплачен</option>
+                <option value="Выдан">Выдан</option>
+              </select>
+            </div>
+          </div>
+          <table>
+            <thead>
+            <tr>
+              <th>#</th>
+              <th>Дата</th>
+              <th>Клиент</th>
+              <th>Состав</th>
+              <th>Сумма</th>
+              <th>Статус</th>
+              <th>Оплата</th>
+              <th>Действия</th>
+            </tr>
+            </thead>
+            <tbody id="adminOrdersBody"></tbody>
+          </table>
+        </div>
+
+        <div class="card" data-access="payments">
+          <h3>Журнал оплат</h3>
+          <table>
+            <thead>
+            <tr>
+              <th>Дата</th>
+              <th># заказа</th>
+              <th>Клиент</th>
+              <th>Сумма + способ</th>
+            </tr>
+            </thead>
+            <tbody id="paymentsBody"></tbody>
+          </table>
+        </div>
+
+        <div class="card" data-access="reports">
+          <h3>Отчёты</h3>
+          <div id="financeReportContainer"></div>
+          <div id="inventoryReportContainer" style="margin-top:10px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <button id="btnAdminLogout" class="btn btn-secondary" style="margin-top:10px;">Выйти</button>
+  </section>
+
+</main>
+
+<!-- Toasts -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Детали</h3>
+      <button class="modal-close" id="modalCloseBtn">&times;</button>
+    </div>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<script>
+  // ==== УТИЛИТЫ ====
+  function formatMoney(value) {
+    return value.toFixed(2) + " сом";
+  }
+  function formatDateTime(date = new Date()) {
+    return date.toLocaleString("ru-RU");
+  }
+
+  // ==== TOAST ====
+  function showToast(message, type = "info") {
+    const container = document.getElementById("toastContainer");
+    if (!container) return;
+    const div = document.createElement("div");
+    div.className = "toast toast-" + type;
+    div.innerHTML = `
+      <span>${message}</span>
+      <button class="toast-close">&times;</button>
+    `;
+    container.appendChild(div);
+
+    const close = () => {
+      div.style.animation = "toast-out 0.25s forwards";
+      setTimeout(() => div.remove(), 250);
+    };
+
+    div.querySelector(".toast-close").addEventListener("click", close);
+    setTimeout(close, 2500);
+  }
+
+  // ==== MODAL ====
+  function openModal(title, htmlContent) {
+    const overlay = document.getElementById("modalOverlay");
+    if (!overlay) return;
+    document.getElementById("modalTitle").textContent = title;
+    document.getElementById("modalContent").innerHTML = htmlContent;
+    overlay.classList.add("active");
+  }
+  function closeModal() {
+    const overlay = document.getElementById("modalOverlay");
+    if (!overlay) return;
+    overlay.classList.remove("active");
+  }
+
+  // ==== РОЛИ ====
+  const ROLE_ACCESS = {
+    admin: ["orders", "inventory", "suppliers", "payments", "reports"],
+    manager: ["orders"],
+    accountant: ["payments", "reports"],
+    warehouse: ["inventory", "suppliers"],
+    client: []
+  };
+
+  // ==== ДАННЫЕ ====
+  const PRODUCTS = [
+    {
+      id: 1,
+      name: "Торт «Наполеон»",
+      price: 800,
+      category: "Торты",
+      image: "https://static.1000.menu/img/content/6602/klassicheskii-recept-torta-napoleon_1525702560_1_max.jpg"
+    },
+    {
+      id: 2,
+      name: "Торт «Красный бархат»",
+      price: 950,
+      category: "Торты",
+      image: "https://bakerstreet.ua/files/resized/blog/pexels-yulia-oliinychenko-849416506-19534496-copy.800x800.jpg"
+    },
+    {
+      id: 3,
+      name: "Чизкейк ванильный",
+      price: 700,
+      category: "Чизкейки",
+      image: "https://art-lunch.ru/content/uploads/2014/08/cheesecake-new-york-001x2-1.jpg"
+    },
+    {
+      id: 4,
+      name: "Эклер ванильный",
+      price: 120,
+      category: "Пирожные",
+      image: "https://i.ytimg.com/vi/ZUspUNKmJjI/hq720.jpg?sqp=-oaymwEhCK4FEIIDSFryq4qpAxMIARUAAAAAGAElAADIQj0AgKJD&rs=AOn4CLBus3a_wGD64y8Fwo3xH06Q3Ryfbw"
+    },
+    {
+      id: 5,
+      name: "Макаруны ассорти (6 шт.)",
+      price: 450,
+      category: "Пирожные",
+      image: "https://content3.flowwow-images.com/data/flowers/1000x1000/07/1717403359_9067707.jpg"
+    }
+  ];
+  function getProductById(id){ return PRODUCTS.find(p => p.id === id); }
+
+  let materials = [
+    { id: 1, name: "Мука", qty: 100, minQty: 20 },
+    { id: 2, name: "Сахар", qty: 18, minQty: 20 }, // ниже минимума для демонстрации
+    { id: 3, name: "Масло сливочное", qty: 50, minQty: 10 }
+  ];
+
+  let suppliers = [
+    { id: 1, name: "ООО «Сладкое сырьё»", contact: "+996 555 11 22 33" },
+    { id: 2, name: "ОсОО «Молочная ферма»", contact: "+996 777 44 55 66" }
+  ];
+
+  let cartItems = [];
+  let orders = [];
+  let payments = [];
+  let currentUser = null;
+  
+
+  // ==== КАТАЛОГ И КОРЗИНА ====
+  function renderCatalog() {
+  const container = document.getElementById("catalog");
+  if (!container) return;
+
+  const catSel = document.getElementById("catalogCategoryFilter");
+  const searchInput = document.getElementById("catalogSearchInput");
+
+  const category = catSel ? catSel.value : "all";
+  const search = searchInput ? searchInput.value.trim().toLowerCase() : "";
+
+  container.innerHTML = "";
+
+  const list = PRODUCTS.filter(p => {
+    const okCat = category === "all" || p.category === category;
+    const okSearch = !search || p.name.toLowerCase().includes(search);
+    return okCat && okSearch;
+  });
+
+  list.forEach(p => {
+    const div = document.createElement("div");
+    div.className = "catalog-item";
+    div.innerHTML = `
+      <img src="${p.image}" alt="${p.name}" />
+      <h4>${p.name}</h4>
+      <span class="tag">${p.category}</span>
+      <p class="price">${formatMoney(p.price)}</p>
+      <button class="btn btn-primary" data-id="${p.id}">В корзину</button>
+    `;
+    container.appendChild(div);
+  });
+
+  container.querySelectorAll("button[data-id]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = parseInt(btn.getAttribute("data-id"), 10);
+      addToCart(id);
+      showToast("Товар добавлен в корзину", "success");
+    });
+  });
+}
+
+  function addToCart(productId){
+    const product = getProductById(productId);
+    if (!product) return;
+    const existing = cartItems.find(i => i.product.id === productId);
+    if (existing) existing.qty += 1;
+    else cartItems.push({ product, qty: 1 });
+    renderCart();
+  }
+
+  function changeCartQty(productId, qty){
+    const item = cartItems.find(i => i.product.id === productId);
+    if (!item) return;
+    item.qty = Math.max(1, qty);
+    renderCart();
+  }
+
+  function removeFromCart(productId){
+    cartItems = cartItems.filter(i => i.product.id !== productId);
+    renderCart();
+  }
+
+  function getCartTotal(){
+    return cartItems.reduce((s, i) => s + i.product.price * i.qty, 0);
+  }
+
+  function clearCart(){
+    cartItems = [];
+    renderCart();
+  }
+
+  function renderCart(){
+    const tbody = document.getElementById("cartItemsBody");
+    const totalEl = document.getElementById("cartTotal");
+    if (!tbody || !totalEl) return;
+    tbody.innerHTML = "";
+    cartItems.forEach(item => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${item.product.name}</td>
+        <td><input type="number" min="1" value="${item.qty}" data-id="${item.product.id}" style="width:60px;" /></td>
+        <td>${formatMoney(item.product.price)}</td>
+        <td>${formatMoney(item.product.price * item.qty)}</td>
+        <td><button class="btn btn-secondary btn-sm" data-remove="${item.product.id}">×</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+    tbody.querySelectorAll("input[data-id]").forEach(input => {
+      input.addEventListener("change", () => {
+        const id = parseInt(input.getAttribute("data-id"), 10);
+        const qty = parseInt(input.value, 10) || 1;
+        changeCartQty(id, qty);
+      });
+    });
+    tbody.querySelectorAll("button[data-remove]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = parseInt(btn.getAttribute("data-remove"), 10);
+        removeFromCart(id);
+      });
+    });
+    totalEl.textContent = formatMoney(getCartTotal());
+  }
+
+  // ==== СКЛАД ====
+  function addMaterialMovement(name, delta) {
+    let mat = materials.find(m => m.name.toLowerCase() === name.toLowerCase());
+    if (!mat) {
+      mat = { id: materials.length + 1, name, qty: 0, minQty: 10 };
+      materials.push(mat);
+    }
+    mat.qty += delta;
+  }
+
+  function renderMaterialsTable() {
+    const tbody = document.getElementById("materialsBody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+    materials.forEach((m, index) => {
+      const warn = m.qty < m.minQty;
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${index + 1}</td>
+        <td>${m.name}</td>
+        <td>${warn ? "<span class='badge-warn'>" + m.qty + "</span>" : m.qty}</td>
+        <td>${m.minQty}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ==== ПОСТАВЩИКИ ====
+  function addSupplier(name, contact) {
+    if (!name) return;
+    suppliers.push({ id: suppliers.length + 1, name, contact });
+    renderSuppliers();
+  }
+
+  function renderSuppliers(){
+    const tbody = document.getElementById("suppliersBody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+    suppliers.forEach((s, index) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${index + 1}</td>
+        <td>${s.name}</td>
+        <td>${s.contact}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ==== ХЕЛПЕРЫ ДЛЯ БЕЙДЖЕЙ ====
+  function renderStatusBadge(status) {
+    let cls = "status-other";
+    if (status === "Новый") cls = "status-new";
+    else if (status === "В производстве") cls = "status-prod";
+    else if (status === "Готов") cls = "status-ready";
+    else if (status === "Оплачен") cls = "status-paid";
+    else if (status === "Выдан") cls = "status-issued";
+    return `<span class="status-badge ${cls}">${status}</span>`;
+  }
+
+  function renderPaymentBadge(order) {
+    if (!order.paid) {
+      return `<span class="status-badge status-unpaid">Не оплачен</span>`;
+    }
+    return `<span class="status-badge status-paid">${order.paymentMethod}</span>`;
+  }
+
+  // ==== ЗАКАЗЫ И ОПЛАТЫ ====
+  function createOrderFromCart(customerName, paymentMethod) {
+    const total = getCartTotal();
+    if (total <= 0) return null;
+    const order = {
+      id: orders.length + 1,
+      customer: customerName || "Клиент",
+      datetime: formatDateTime(),
+      items: cartItems.map(i => ({
+        name: i.product.name, qty: i.qty, price: i.product.price
+      })),
+      total,
+      status: "Новый",
+      paymentMethod: paymentMethod || "не выбран",
+      paid: false
+    };
+    orders.push(order);
+    clearCart();
+    renderOrdersAdmin();
+    renderClientOrders(customerName);
+    refreshSummary();
+    rebuildReports();
+    return order;
+  }
+
+  function addManualOrder(customerName, productId, qty) {
+    const product = getProductById(productId);
+    if (!product) return;
+    const order = {
+      id: orders.length + 1,
+      customer: customerName,
+      datetime: formatDateTime(),
+      items: [{ name: product.name, qty, price: product.price }],
+      total: product.price * qty,
+      status: "Новый",
+      paymentMethod: "не выбран",
+      paid: false
+    };
+    orders.push(order);
+    renderOrdersAdmin();
+    refreshSummary();
+    rebuildReports();
+    showToast("Заказ создан вручную", "success");
+  }
+
+  function markOrderPaid(orderId, method) {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+    order.paid = true;
+    order.paymentMethod = method;
+    order.status = "Оплачен";
+    payments.push({
+      datetime: formatDateTime(),
+      orderId: order.id,
+      customer: order.customer,
+      amount: order.total,
+      method
+    });
+    renderOrdersAdmin();
+    renderPaymentsTable();
+    refreshSummary();
+    rebuildReports();
+    showToast("Оплата проведена (" + method + ")", "success");
+  }
+
+  function updateOrderStatus(orderId, newStatus) {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+    order.status = newStatus;
+    renderOrdersAdmin();
+    renderClientOrders(currentUser ? currentUser.name : "");
+    refreshSummary();
+    rebuildReports();
+    showToast("Статус заказа #" + orderId + ": " + newStatus, "info");
+  }
+
+  function openOrderDetails(orderId) {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+    const itemsHtml = order.items
+      .map(i => `<li>${i.name} — ${i.qty} шт. × ${formatMoney(i.price)}</li>`)
+      .join("");
+    const html = `
+      <p><b>Клиент:</b> ${order.customer}</p>
+      <p><b>Дата:</b> ${order.datetime}</p>
+      <p><b>Состав заказа:</b></p>
+      <ul>${itemsHtml}</ul>
+      <p><b>Сумма:</b> ${formatMoney(order.total)}</p>
+      <p><b>Оплата:</b> ${order.paid ? order.paymentMethod : "Не оплачено"}</p>
+      <p><b>Статус:</b> ${order.status}</p>
+    `;
+    openModal("Заказ #" + order.id, html);
+  }
+
+  function renderOrdersAdmin() {
+    const tbody = document.getElementById("adminOrdersBody");
+    const filterSel = document.getElementById("adminOrdersFilter");
+    if (!tbody || !filterSel) return;
+    const filter = filterSel.value;
+    tbody.innerHTML = "";
+    const list = orders.filter(o => filter === "all" || o.status === filter);
+
+    list.forEach(o => {
+      const tr = document.createElement("tr");
+      const itemsText = o.items.map(i => `${i.name} (${i.qty} шт.)`).join(", ");
+      tr.innerHTML = `
+        <td>${o.id}</td>
+        <td>${o.datetime}</td>
+        <td>${o.customer}</td>
+        <td>${itemsText}</td>
+        <td>${formatMoney(o.total)}</td>
+        <td>${renderStatusBadge(o.status)}</td>
+        <td>${renderPaymentBadge(o)}</td>
+        <td>
+          <button class="btn btn-secondary btn-sm" data-view="${o.id}">🔍</button>
+          <button class="btn btn-secondary btn-sm" data-prod="${o.id}">В произв.</button>
+          <button class="btn btn-secondary btn-sm" data-ready="${o.id}">Готов</button>
+          <button class="btn btn-secondary btn-sm" data-issued="${o.id}">Выдать</button>
+          <button class="btn btn-primary btn-sm" data-pay="${o.id}">Оплатить</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    tbody.querySelectorAll("button[data-pay]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = parseInt(btn.getAttribute("data-pay"), 10);
+        const method = prompt("Способ оплаты (наличные/карта):", "карта") || "карта";
+        markOrderPaid(id, method);
+      });
+    });
+    tbody.querySelectorAll("button[data-prod]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = parseInt(btn.getAttribute("data-prod"), 10);
+        updateOrderStatus(id, "В производстве");
+      });
+    });
+    tbody.querySelectorAll("button[data-ready]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = parseInt(btn.getAttribute("data-ready"), 10);
+        updateOrderStatus(id, "Готов");
+      });
+    });
+    tbody.querySelectorAll("button[data-issued]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = parseInt(btn.getAttribute("data-issued"), 10);
+        updateOrderStatus(id, "Выдан");
+      });
+    });
+    tbody.querySelectorAll("button[data-view]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = parseInt(btn.getAttribute("data-view"), 10);
+        openOrderDetails(id);
+      });
+    });
+  }
+
+  function renderClientOrders(clientName) {
+    const tbody = document.getElementById("clientOrdersBody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+    const filtered = clientName ? orders.filter(o => o.customer === clientName) : orders;
+    filtered.forEach(o => {
+      const tr = document.createElement("tr");
+      const itemsText = o.items.map(i => `${i.name} (${i.qty})`).join(", ");
+      tr.innerHTML = `
+        <td>${o.id}</td>
+        <td>${o.datetime}</td>
+        <td>${itemsText}</td>
+        <td>${formatMoney(o.total)}</td>
+        <td>${renderPaymentBadge(o)}</td>
+        <td>${renderStatusBadge(o.status)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function refreshSummary() {
+    const totalOrdersEl = document.getElementById("adminTotalOrders");
+    const unpaidEl = document.getElementById("adminUnpaid");
+    const totalAmountEl = document.getElementById("adminTotalAmount");
+    const dashTotal = document.getElementById("dashTotalOrders");
+    const dashPaidOrders = document.getElementById("dashPaidOrders");
+    const dashPaidAmount = document.getElementById("dashPaidAmount");
+    const dashIssuedOrders = document.getElementById("dashIssuedOrders");
+    const dashLowStock = document.getElementById("dashLowStock");
+
+    const total = orders.length;
+    const unpaidCount = orders.filter(o => !o.paid).length;
+    const sum = orders.reduce((s, o) => s + o.total, 0);
+    const paidOrders = orders.filter(o => o.paid);
+    const paidSum = paidOrders.reduce((s, o) => s + o.total, 0);
+    const issuedCount = orders.filter(o => o.status === "Выдан").length;
+    const lowStockCount = materials.filter(m => m.qty < m.minQty).length;
+
+    if (totalOrdersEl) totalOrdersEl.textContent = total.toString();
+    if (unpaidEl) unpaidEl.textContent = unpaidCount.toString();
+    if (totalAmountEl) totalAmountEl.textContent = formatMoney(sum);
+
+    if (dashTotal) dashTotal.textContent = total.toString();
+    if (dashPaidOrders) dashPaidOrders.textContent = paidOrders.length.toString();
+    if (dashPaidAmount) dashPaidAmount.textContent = formatMoney(paidSum);
+    if (dashIssuedOrders) dashIssuedOrders.textContent = issuedCount.toString();
+    if (dashLowStock) dashLowStock.textContent = lowStockCount.toString();
+  }
+
+  function renderPaymentsTable() {
+    const tbody = document.getElementById("paymentsBody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+    payments.forEach(p => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${p.datetime}</td>
+        <td>${p.orderId}</td>
+        <td>${p.customer}</td>
+        <td>${formatMoney(p.amount)} (${p.method})</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ==== ОТЧЁТЫ ====
+  function rebuildReports() {
+    const fin = document.getElementById("financeReportContainer");
+    const inv = document.getElementById("inventoryReportContainer");
+    if (fin) {
+      const totalRevenue = orders.reduce((s, o) => s + o.total, 0);
+      const paidOrders = orders.filter(o => o.paid);
+      const paidRevenue = paidOrders.reduce((s, o) => s + o.total, 0);
+      const issuedCount = orders.filter(o => o.status === "Выдан").length;
+
+      fin.innerHTML = `
+        <p><b>Всего заказов:</b> ${orders.length}</p>
+        <p><b>Общая сумма заказов:</b> ${formatMoney(totalRevenue)}</p>
+        <p><b>Оплачено заказов:</b> ${paidOrders.length} на сумму ${formatMoney(paidRevenue)}</p>
+        <p><b>Не оплачено заказов:</b> ${orders.length - paidOrders.length}</p>
+        <p><b>Выдано заказов:</b> ${issuedCount}</p>
+      `;
+    }
+    if (inv) {
+      let lowCount = materials.filter(m => m.qty < m.minQty).length;
+      let html = "<h4>Склад сырья</h4><ul>";
+      materials.forEach(m => {
+        const warn = m.qty < m.minQty ? " — <span class='badge-warn'>ниже минимума!</span>" : "";
+        html += `<li>${m.name}: ${m.qty} кг (минимум ${m.minQty} кг)${warn}</li>`;
+      });
+      html += `</ul><p class="muted">Позиции ниже минимума: <b>${lowCount}</b></p>`;
+      inv.innerHTML = html;
+    }
+  }
+
+  // ==== DEMO ДАННЫЕ ====
+  function seedDemoData() {
+    if (orders.length > 0) return;
+
+    const o1 = {
+      id: 1,
+      customer: "Иванова А.А.",
+      datetime: formatDateTime(new Date(Date.now() - 3600 * 1000 * 5)),
+      items: [
+        { name: "Торт «Наполеон»", qty: 1, price: 800 },
+        { name: "Макаруны ассорти (6 шт.)", qty: 2, price: 450 }
+      ],
+      total: 800 + 2 * 450,
+      status: "Оплачен",
+      paymentMethod: "карта",
+      paid: true
+    };
+
+    const o2 = {
+      id: 2,
+      customer: "ОсОО «Сладкий дом»",
+      datetime: formatDateTime(new Date(Date.now() - 3600 * 1000 * 2)),
+      items: [
+        { name: "Торт «Красный бархат»", qty: 3, price: 950 }
+      ],
+      total: 3 * 950,
+      status: "В производстве",
+      paymentMethod: "не выбран",
+      paid: false
+    };
+
+    const o3 = {
+      id: 3,
+      customer: "Петров Б.Б.",
+      datetime: formatDateTime(new Date(Date.now() - 3600 * 1000)),
+      items: [
+        { name: "Чизкейк ванильный", qty: 1, price: 700 }
+      ],
+      total: 700,
+      status: "Выдан",
+      paymentMethod: "наличные",
+      paid: true
+    };
+
+    orders.push(o1, o2, o3);
+
+    payments.push(
+      {
+        datetime: o1.datetime,
+        orderId: o1.id,
+        customer: o1.customer,
+        amount: o1.total,
+        method: o1.paymentMethod
+      },
+      {
+        datetime: o3.datetime,
+        orderId: o3.id,
+        customer: o3.customer,
+        amount: o3.total,
+        method: o3.paymentMethod
+      }
+    );
+  }
+
+  // ==== ЭКРАНЫ, РОЛИ, ЛОГИН ====
+  function showScreen(name){
+    document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+    const sec = document.getElementById("screen-" + name);
+    if (sec) sec.classList.add("active");
+  }
+
+  function applyRoleAccess(role){
+    const allowed = ROLE_ACCESS[role] || [];
+    document.querySelectorAll("#screen-admin .card[data-access]").forEach(card => {
+      const acc = card.getAttribute("data-access");
+      card.style.display = allowed.includes(acc) ? "" : "none";
+    });
+    const hint = document.getElementById("roleHint");
+    if (hint) {
+      if (role === "admin") {
+        hint.textContent = "Администратор видит все разделы: заказы, склад, поставщиков, оплаты и отчёты.";
+      } else if (role === "manager") {
+        hint.textContent = "Менеджер заказов работает только с заказами клиентов.";
+      } else if (role === "accountant") {
+        hint.textContent = "Бухгалтер работает с оплатами и финансовыми отчётами.";
+      } else if (role === "warehouse") {
+        hint.textContent = "Склад-менеджер ведёт учёт сырья и поставщиков.";
+      } else {
+        hint.textContent = "";
+      }
+    }
+  }
+
+  function fillOrderProductSelect() {
+    const select = document.getElementById("orderProductSelect");
+    if (!select) return;
+    select.innerHTML = "";
+    PRODUCTS.forEach(p => {
+      const opt = document.createElement("option");
+      opt.value = p.id;
+      opt.textContent = `${p.name} (${formatMoney(p.price)})`;
+      select.appendChild(opt);
+    });
+  }
+
+  function onLoginSubmit(e){
+    e.preventDefault();
+    const name = document.getElementById("loginName").value.trim();
+    const role = document.getElementById("loginRole").value;
+    if (!name) {
+      alert("Введите имя пользователя");
+      return;
+    }
+    currentUser = { name, role };
+    document.getElementById("headerUser").textContent = `${name} (${role})`;
+
+    if (role === "client") {
+      showScreen("client");
+      renderClientOrders(name);
+      showToast("Добро пожаловать в клиентский кабинет", "info");
+    } else {
+      showScreen("admin");
+      applyRoleAccess(role);
+      renderOrdersAdmin();
+      renderPaymentsTable();
+      rebuildReports();
+      showToast("Вход в админскую часть как " + role, "info");
+    }
+  }
+
+  function logout(){
+    currentUser = null;
+    document.getElementById("headerUser").textContent = "Не авторизован";
+    showScreen("login");
+    showToast("Вы вышли из системы", "info");
+  }
+
+  // ==== ТЕМА ====
+  function applyThemeFromStorage() {
+    const saved = localStorage.getItem("erp_theme");
+    if (saved === "dark") {
+      document.body.classList.add("dark");
+      const btn = document.getElementById("themeToggle");
+      if (btn) btn.textContent = "🌙 Тёмная";
+    }
+  }
+  function toggleTheme() {
+    document.body.classList.toggle("dark");
+    const btn = document.getElementById("themeToggle");
+    if (document.body.classList.contains("dark")) {
+      if (btn) btn.textContent = "🌙 Тёмная";
+      localStorage.setItem("erp_theme", "dark");
+    } else {
+      if (btn) btn.textContent = "☀️ Светлая";
+      localStorage.setItem("erp_theme", "light");
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    applyThemeFromStorage();
+
+    renderCatalog();
+    renderCart();
+    renderMaterialsTable();
+    renderSuppliers();
+    fillOrderProductSelect();
+
+    seedDemoData();
+    renderOrdersAdmin();
+    renderPaymentsTable();
+    refreshSummary();
+    rebuildReports();
+
+    document.getElementById("loginForm").addEventListener("submit", onLoginSubmit);
+    document.getElementById("btnClientLogout").addEventListener("click", logout);
+    document.getElementById("btnAdminLogout").addEventListener("click", logout);
+
+    const filterSel = document.getElementById("adminOrdersFilter");
+    if (filterSel) {
+      filterSel.addEventListener("change", () => {
+        renderOrdersAdmin();
+      });
+    }
+        const catSel = document.getElementById("catalogCategoryFilter");
+    const searchInput = document.getElementById("catalogSearchInput");
+    if (catSel) {
+      catSel.addEventListener("change", () => renderCatalog());
+    }
+    if (searchInput) {
+      searchInput.addEventListener("input", () => renderCatalog());
+    }
+    document.getElementById("btnCartCheckout").addEventListener("click", () => {
+  if (!currentUser || currentUser.role !== "client") {
+    alert("Сначала войдите как клиент.");
+    return;
+  }
+  if (cartItems.length === 0) {
+    alert("Корзина пуста.");
+    return;
+  }
+       const btnCartClear = document.getElementById("btnCartClear");
+    if (btnCartClear) {
+      btnCartClear.addEventListener("click", () => {
+        if (cartItems.length === 0) {
+          showToast("Корзина уже пуста", "info");
+          return;
+        }
+        clearCart();
+        showToast("Корзина очищена", "info");
+      });
+    }
+  const cashRadio = document.getElementById("paymentMethodCash");
+  const cardRadio = document.getElementById("paymentMethodCard");
+  let method = "наличные";
+  if (cardRadio && cardRadio.checked) method = "карта";
+
+  const order = createOrderFromCart(currentUser.name, method);
+  if (order) {
+    showToast("Заказ создан! № " + order.id, "success");
+  }
+});
+
+    const materialForm = document.getElementById("materialForm");
+    materialForm.addEventListener("submit", e => {
+      e.preventDefault();
+      const name = document.getElementById("materialName").value.trim();
+      const delta = parseFloat(document.getElementById("materialDelta").value) || 0;
+      const op = document.getElementById("materialOp").value;
+      if (!name || delta <= 0) return;
+      addMaterialMovement(name, op === "in" ? delta : -delta);
+      renderMaterialsTable();
+      rebuildReports();
+      refreshSummary();
+      materialForm.reset();
+      showToast("Движение по складу сохранено", "success");
+    });
+
+    const supplierForm = document.getElementById("supplierForm");
+    supplierForm.addEventListener("submit", e => {
+      e.preventDefault();
+      const name = document.getElementById("supplierName").value.trim();
+      const contact = document.getElementById("supplierContact").value.trim();
+      addSupplier(name, contact);
+      supplierForm.reset();
+      showToast("Поставщик добавлен", "success");
+    });
+
+    const orderForm = document.getElementById("orderForm");
+    orderForm.addEventListener("submit", e => {
+      e.preventDefault();
+      const customer = document.getElementById("orderCustomer").value.trim();
+      const productId = parseInt(document.getElementById("orderProductSelect").value, 10);
+      const qty = parseInt(document.getElementById("orderQty").value, 10) || 1;
+      if (!customer) {
+        alert("Введите имя клиента");
+        return;
+      }
+      addManualOrder(customer, productId, qty);
+      orderForm.reset();
+    });
+
+    document.getElementById("modalOverlay").addEventListener("click", (e) => {
+      if (e.target.id === "modalOverlay") {
+        closeModal();
+      }
+    });
+    document.getElementById("modalCloseBtn").addEventListener("click", closeModal);
+
+    const themeBtn = document.getElementById("themeToggle");
+    if (themeBtn) {
+      themeBtn.addEventListener("click", toggleTheme);
+      if (document.body.classList.contains("dark")) {
+        themeBtn.textContent = "🌙 Тёмная";
+      } else {
+        themeBtn.textContent = "☀️ Светлая";
+      }
+    }
+  });
+</script>
+
+</body>
+</html>
