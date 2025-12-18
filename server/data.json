@@ -1,0 +1,270 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "Admin",
+      "email": "admin@example.com",
+      "password": "$2a$08$GqC2deIzqEm35wuh32WD/O8wybM57AGS.39CJm7fPb21ENo895px6",
+      "role": "admin"
+    },
+    {
+      "id": 2,
+      "name": "Client Demo",
+      "email": "client@example.com",
+      "role": "client"
+    }
+  ],
+  "products": [
+    {
+      "id": 1,
+      "name": "Торт «Наполеон»",
+      "price": 800,
+      "category": "Торты",
+      "recipe": [
+        {
+          "name": "Мука",
+          "qtyPerUnit": 2
+        },
+        {
+          "name": "Сахар",
+          "qtyPerUnit": 1.5
+        },
+        {
+          "name": "Масло сливочное",
+          "qtyPerUnit": 0.5
+        }
+      ],
+      "productionTimeMinutes": 240
+    },
+    {
+      "id": 2,
+      "name": "Торт «Красный бархат»",
+      "price": 950,
+      "category": "Торты",
+      "recipe": [
+        {
+          "name": "Мука",
+          "qtyPerUnit": 1.8
+        },
+        {
+          "name": "Сахар",
+          "qtyPerUnit": 1.6
+        },
+        {
+          "name": "Масло сливочное",
+          "qtyPerUnit": 0.6
+        }
+      ],
+      "productionTimeMinutes": 200
+    },
+    {
+      "id": 3,
+      "name": "Чизкейк ванильный",
+      "price": 700,
+      "category": "Чизкейки",
+      "recipe": [
+        {
+          "name": "Мука",
+          "qtyPerUnit": 0.5
+        },
+        {
+          "name": "Сахар",
+          "qtyPerUnit": 0.8
+        },
+        {
+          "name": "Масло сливочное",
+          "qtyPerUnit": 0.3
+        }
+      ],
+      "productionTimeMinutes": 180
+    },
+    {
+      "id": 4,
+      "name": "Эклер ванильный",
+      "price": 120,
+      "category": "Пирожные",
+      "recipe": [
+        {
+          "name": "Мука",
+          "qtyPerUnit": 0.3
+        },
+        {
+          "name": "Сахар",
+          "qtyPerUnit": 0.2
+        },
+        {
+          "name": "Масло сливочное",
+          "qtyPerUnit": 0.1
+        }
+      ],
+      "productionTimeMinutes": 30
+    },
+    {
+      "id": 5,
+      "name": "Макаруны ассорти (6 шт.)",
+      "price": 450,
+      "category": "Пирожные",
+      "recipe": [
+        {
+          "name": "Мука",
+          "qtyPerUnit": 0.2
+        },
+        {
+          "name": "Сахар",
+          "qtyPerUnit": 0.5
+        },
+        {
+          "name": "Масло сливочное",
+          "qtyPerUnit": 0.1
+        }
+      ],
+      "productionTimeMinutes": 60
+    }
+  ],
+  "materials": [
+    {
+      "id": 1,
+      "name": "Мука",
+      "stock": 100,
+      "qty": 100,
+      "minStock": 20,
+      "min_qty": 20,
+      "unitCost": 45
+    },
+    {
+      "id": 2,
+      "name": "Сахар",
+      "stock": 80,
+      "qty": 80,
+      "minStock": 15,
+      "min_qty": 15,
+      "unitCost": 40
+    },
+    {
+      "id": 3,
+      "name": "Масло сливочное",
+      "stock": 50,
+      "qty": 50,
+      "minStock": 10,
+      "min_qty": 10,
+      "unitCost": 150
+    }
+  ],
+  "suppliers": [],
+  "supplies": [],
+  "supply_items": [],
+  "reservations": [],
+  "stockMovements": [],
+  "orders": [
+    {
+      "id": 1,
+      "customer": "admin@lux.kg",
+      "datetime": "2025-12-18T05:29:10.086Z",
+      "total": 1770,
+      "status": "Новый",
+      "payment_method": "наличные",
+      "paid": 0,
+      "required_materials": [
+        {
+          "name": "Мука",
+          "requiredQty": 2.5999999999999996,
+          "inStockQty": 100,
+          "missingQty": 0
+        },
+        {
+          "name": "Сахар",
+          "requiredQty": 2.6000000000000005,
+          "inStockQty": 80,
+          "missingQty": 0
+        },
+        {
+          "name": "Масло сливочное",
+          "requiredQty": 0.9999999999999999,
+          "inStockQty": 50,
+          "missingQty": 0
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "customer": "admin@lux.kg",
+      "datetime": "2025-12-18T05:29:12.229Z",
+      "total": 1770,
+      "status": "Новый",
+      "payment_method": "наличные",
+      "paid": 0,
+      "required_materials": [
+        {
+          "name": "Мука",
+          "requiredQty": 2.5999999999999996,
+          "inStockQty": 100,
+          "missingQty": 0
+        },
+        {
+          "name": "Сахар",
+          "requiredQty": 2.6000000000000005,
+          "inStockQty": 80,
+          "missingQty": 0
+        },
+        {
+          "name": "Масло сливочное",
+          "requiredQty": 0.9999999999999999,
+          "inStockQty": 50,
+          "missingQty": 0
+        }
+      ]
+    }
+  ],
+  "order_items": [
+    {
+      "id": 1,
+      "order_id": 1,
+      "product_name": "Торт «Красный бархат»",
+      "qty": 1,
+      "price": 950
+    },
+    {
+      "id": 2,
+      "order_id": 1,
+      "product_name": "Чизкейк ванильный",
+      "qty": 1,
+      "price": 700
+    },
+    {
+      "id": 3,
+      "order_id": 1,
+      "product_name": "Эклер ванильный",
+      "qty": 1,
+      "price": 120
+    },
+    {
+      "id": 4,
+      "order_id": 2,
+      "product_name": "Торт «Красный бархат»",
+      "qty": 1,
+      "price": 950
+    },
+    {
+      "id": 5,
+      "order_id": 2,
+      "product_name": "Чизкейк ванильный",
+      "qty": 1,
+      "price": 700
+    },
+    {
+      "id": 6,
+      "order_id": 2,
+      "product_name": "Эклер ванильный",
+      "qty": 1,
+      "price": 120
+    }
+  ],
+  "payments": [],
+  "settings": [
+    {
+      "id": 1,
+      "key": "production_capacity",
+      "value": 2
+    }
+  ]
+}

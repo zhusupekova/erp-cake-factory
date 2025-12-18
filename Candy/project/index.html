@@ -3,6 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <title>ERP Кондитерской фабрики</title>
+  <script>
+  (function () {
+    const origin = window?.location?.origin || "";
+    window.ERP_API_BASE = origin.startsWith("http")
+      ? origin
+      : "http://localhost:4000";
+  })();
+</script>
+  <!-- <script>
+    // API base: use same origin when served by server, otherwise default to localhost:4000 for dev
+    window.ERP_API_BASE = (window && window.location && window.location.origin) ? window.location.origin : 'http://localhost:4000';
+  </script> -->
   <style>
     :root {
       --pink-main: #ec407a;
@@ -485,6 +497,9 @@
   <div class="header-right">
     <button id="themeToggle" class="theme-toggle">☀️ Светлая</button>
     <div class="user-info" id="headerUser">Не авторизован</div>
+    <button id="exportStateBtn" class="btn btn-secondary btn-sm">Экспорт</button>
+    <label class="btn btn-secondary btn-sm" for="importStateFile" style="margin:0; padding:6px 10px; cursor:pointer;">Импорт</label>
+    <input type="file" id="importStateFile" accept="application/json" style="display:none" />
   </div>
 </header>
 
@@ -498,6 +513,14 @@
         <div class="form-row">
           <label>Имя пользователя</label>
           <input type="text" id="loginName" placeholder="Например: Иванова А.А." required />
+        </div>
+        <div class="form-row">
+          <label>E‑mail (для входа в API)</label>
+          <input type="text" id="loginEmail" placeholder="ivanov@example.com" />
+        </div>
+        <div class="form-row">
+          <label>Пароль (для входа в API)</label>
+          <input type="password" id="loginPassword" placeholder="пароль" />
         </div>
         <div class="form-row">
           <label>Роль</label>
@@ -633,6 +656,11 @@
           <div class="dash-card-value" id="dashLowStock">0</div>
           <div class="dash-card-sub">Позиции ниже минимума</div>
         </div>
+        <div class="dash-card">
+          <div class="dash-card-title">Производство (очередь)</div>
+          <div class="dash-card-value" id="dashProductionQueue">0</div>
+          <div class="dash-card-sub">Запланировано / в производстве</div>
+        </div>
       </div>
       <p class="muted">
         Административная часть объединяет блоки: заказы, склад сырья, поставщики, оплаты и отчётность.
@@ -647,6 +675,25 @@
           <p>Всего заказов: <b id="adminTotalOrders">0</b></p>
           <p>Неоплаченные: <b id="adminUnpaid">0</b></p>
           <p>Общая сумма: <b id="adminTotalAmount">0 сом</b></p>
+        </div>
+
+        <div class="card" data-access="orders">
+          <h3>Очередь производства</h3>
+          <div id="productionQueueContainer">
+            <table style="width:100%">
+              <thead><tr><th>№</th><th>Клиент</th><th>Статус</th><th>Начало</th><th>ETA</th><th>Резерв</th><th>Списано</th></tr></thead>
+              <tbody id="productionQueueBody"></tbody>
+            </table>
+          </div>
+          <div style="margin-top:10px">
+            <h4>Слоты производства</h4>
+            <div id="productionSlots" style="display:flex;gap:8px;"></div>
+            <div style="margin-top:8px">
+              <label>Ёмкость (слотов):</label>
+              <input type="number" id="productionCapacityInput" value="2" min="1" style="width:80px" />
+              <button id="btnSetCapacity" class="btn btn-secondary">Применить</button>
+            </div>
+          </div>
         </div>
 
         <div class="card" data-access="orders">
@@ -693,6 +740,35 @@
           </table>
         </div>
 
+        <div class="card" data-access="suppliers">
+          <h3>Закупки / поставки</h3>
+          <form id="purchaseForm">
+            <div class="form-row">
+              <label>Поставщик</label>
+              <select id="purchaseSupplier"></select>
+            </div>
+            <div class="form-row">
+              <label>Сырьё</label>
+              <input type="text" id="purchaseMaterial" placeholder="Мука" />
+            </div>
+            <div class="form-row">
+              <label>Количество</label>
+              <input type="number" id="purchaseQty" value="10" min="0.1" step="0.1" />
+            </div>
+            <div class="form-row">
+              <label>Цена за ед.</label>
+              <input type="number" id="purchaseUnitCost" value="50" min="0" step="0.1" />
+            </div>
+            <button type="submit" class="btn btn-primary">Создать заказ поставщику</button>
+          </form>
+          <table style="margin-top:10px; width:100%">
+            <thead>
+              <tr><th>#</th><th>Поставщик</th><th>Дата</th><th>Статус</th><th>Сумма</th><th>Действия</th></tr>
+            </thead>
+            <tbody id="suppliesBody"></tbody>
+          </table>
+        </div>
+
         <div class="card" data-access="inventory">
           <h3>Склад сырья</h3>
           <form id="materialForm">
@@ -720,10 +796,15 @@
               <th>Сырьё</th>
               <th>Остаток (кг)</th>
               <th>Минимум</th>
+              <th>Нужно заказать (кг)</th>
             </tr>
             </thead>
             <tbody id="materialsBody"></tbody>
           </table>
+          <div style="display:flex; align-items:center; gap:8px; margin-top:6px; flex-wrap:wrap;">
+            <div id="procurementNeeds" class="muted"></div>
+            <button id="btnGeneratePurchase" class="btn btn-secondary btn-sm">Создать заказ на дефицит</button>
+          </div>
         </div>
       </div>
 
@@ -862,35 +943,65 @@
       name: "Торт «Наполеон»",
       price: 800,
       category: "Торты",
-      image: "https://static.1000.menu/img/content/6602/klassicheskii-recept-torta-napoleon_1525702560_1_max.jpg"
+      image: "https://static.1000.menu/img/content/6602/klassicheskii-recept-torta-napoleon_1525702560_1_max.jpg",
+      recipe: [
+        { name: "Мука", qtyPerUnit: 2 },
+        { name: "Сахар", qtyPerUnit: 1.5 },
+        { name: "Масло сливочное", qtyPerUnit: 0.5 }
+      ],
+      productionTimeMinutes: 240
     },
     {
       id: 2,
       name: "Торт «Красный бархат»",
       price: 950,
       category: "Торты",
-      image: "https://bakerstreet.ua/files/resized/blog/pexels-yulia-oliinychenko-849416506-19534496-copy.800x800.jpg"
+      image: "https://bakerstreet.ua/files/resized/blog/pexels-yulia-oliinychenko-849416506-19534496-copy.800x800.jpg",
+      recipe: [
+        { name: "Мука", qtyPerUnit: 1.8 },
+        { name: "Сахар", qtyPerUnit: 1.6 },
+        { name: "Масло сливочное", qtyPerUnit: 0.6 }
+      ],
+      productionTimeMinutes: 200
     },
     {
       id: 3,
       name: "Чизкейк ванильный",
       price: 700,
       category: "Чизкейки",
-      image: "https://art-lunch.ru/content/uploads/2014/08/cheesecake-new-york-001x2-1.jpg"
+      image: "https://art-lunch.ru/content/uploads/2014/08/cheesecake-new-york-001x2-1.jpg",
+      recipe: [
+        { name: "Мука", qtyPerUnit: 0.5 },
+        { name: "Сахар", qtyPerUnit: 0.8 },
+        { name: "Масло сливочное", qtyPerUnit: 0.3 }
+      ],
+      productionTimeMinutes: 180
     },
     {
       id: 4,
       name: "Эклер ванильный",
       price: 120,
       category: "Пирожные",
-      image: "https://i.ytimg.com/vi/ZUspUNKmJjI/hq720.jpg?sqp=-oaymwEhCK4FEIIDSFryq4qpAxMIARUAAAAAGAElAADIQj0AgKJD&rs=AOn4CLBus3a_wGD64y8Fwo3xH06Q3Ryfbw"
+      image: "https://i.ytimg.com/vi/ZUspUNKmJjI/hq720.jpg?sqp=-oaymwEhCK4FEIIDSFryq4qpAxMIARUAAAAAGAElAADIQj0AgKJD&rs=AOn4CLBus3a_wGD64y8Fwo3xH06Q3Ryfbw",
+      recipe: [
+        { name: "Мука", qtyPerUnit: 0.3 },
+        { name: "Сахар", qtyPerUnit: 0.2 },
+        { name: "Масло сливочное", qtyPerUnit: 0.1 }
+      ],
+      productionTimeMinutes: 30
     },
     {
       id: 5,
       name: "Макаруны ассорти (6 шт.)",
       price: 450,
       category: "Пирожные",
-      image: "https://content3.flowwow-images.com/data/flowers/1000x1000/07/1717403359_9067707.jpg"
+      image: "https://content3.flowwow-images.com/data/flowers/1000x1000/07/1717403359_9067707.jpg",
+      recipe: [
+        { name: "Мука", qtyPerUnit: 0.2 },
+        { name: "Сахар", qtyPerUnit: 0.5 },
+        { name: "Масло сливочное", qtyPerUnit: 0.1 }
+      ],
+      productionTimeMinutes: 60
     }
   ];
   function getProductById(id){ return PRODUCTS.find(p => p.id === id); }
@@ -910,6 +1021,7 @@
   let orders = [];
   let payments = [];
   let currentUser = null;
+  let supplies = [];
   
 
   // ==== КАТАЛОГ И КОРЗИНА ====
@@ -1031,15 +1143,30 @@
     tbody.innerHTML = "";
     materials.forEach((m, index) => {
       const warn = m.qty < m.minQty;
+      const need = Math.max(0, (m.minQty || 0) - (m.qty || 0));
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${index + 1}</td>
         <td>${m.name}</td>
         <td>${warn ? "<span class='badge-warn'>" + m.qty + "</span>" : m.qty}</td>
         <td>${m.minQty}</td>
+        <td>${need > 0 ? "<span class='badge-warn'>" + need + "</span>" : "—"}</td>
       `;
       tbody.appendChild(tr);
     });
+
+    renderProcurementNeeds();
+  }
+
+  function renderProcurementNeeds(){
+    const box = document.getElementById("procurementNeeds");
+    if (!box) return;
+    const deficits = materials.filter(m => (m.qty || 0) < (m.minQty || 0)).map(m => ({ name: m.name, need: Math.max(0, m.minQty - m.qty) }));
+    if (!deficits.length) {
+      box.innerHTML = "Все материалы выше минимального остатка.";
+      return;
+    }
+    box.innerHTML = "Нужно заказать: " + deficits.map(d => `${d.name} — ${d.need} кг`).join(", ");
   }
 
   // ==== ПОСТАВЩИКИ ====
@@ -1047,6 +1174,7 @@
     if (!name) return;
     suppliers.push({ id: suppliers.length + 1, name, contact });
     renderSuppliers();
+    renderSupplierSelect();
   }
 
   function renderSuppliers(){
@@ -1062,6 +1190,14 @@
       `;
       tbody.appendChild(tr);
     });
+
+    renderSupplierSelect();
+  }
+
+  function renderSupplierSelect(){
+    const sel = document.getElementById("purchaseSupplier");
+    if (!sel) return;
+    sel.innerHTML = suppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
   }
 
   // ==== ХЕЛПЕРЫ ДЛЯ БЕЙДЖЕЙ ====
@@ -1072,6 +1208,8 @@
     else if (status === "Готов") cls = "status-ready";
     else if (status === "Оплачен") cls = "status-paid";
     else if (status === "Выдан") cls = "status-issued";
+    else if (status === "Draft") cls = "status-new";
+    else if (status === "Received") cls = "status-paid";
     return `<span class="status-badge ${cls}">${status}</span>`;
   }
 
@@ -1086,6 +1224,12 @@
   function createOrderFromCart(customerName, paymentMethod) {
     const total = getCartTotal();
     if (total <= 0) return null;
+    const requiredMaterials = computeRequiredMaterialsFromCart();
+    const shortages = requiredMaterials.filter(r => r.missingQty > 0);
+    if (shortages.length) {
+      alert("Недостаточно сырья: " + shortages.map(s => `${s.name} (нужно ${s.requiredQty}, в наличии ${s.inStockQty})`).join(", "));
+      return null;
+    }
     const order = {
       id: orders.length + 1,
       customer: customerName || "Клиент",
@@ -1093,6 +1237,7 @@
       items: cartItems.map(i => ({
         name: i.product.name, qty: i.qty, price: i.product.price
       })),
+      requiredMaterials,
       total,
       status: "Новый",
       paymentMethod: paymentMethod || "не выбран",
@@ -1110,11 +1255,13 @@
   function addManualOrder(customerName, productId, qty) {
     const product = getProductById(productId);
     if (!product) return;
+    const requiredMaterials = computeRequiredMaterials([{ product, qty }]);
     const order = {
       id: orders.length + 1,
       customer: customerName,
       datetime: formatDateTime(),
       items: [{ name: product.name, qty, price: product.price }],
+      requiredMaterials,
       total: product.price * qty,
       status: "Новый",
       paymentMethod: "не выбран",
@@ -1124,7 +1271,61 @@
     renderOrdersAdmin();
     refreshSummary();
     rebuildReports();
+    startProduction(order.id);
     showToast("Заказ создан вручную", "success");
+  }
+
+  // ==== ЗАКУПКИ / ПОСТАВКИ ====
+  function addSupplyDraft(supplierId, supplierName, materialName, qty, unitCost) {
+    const id = supplies.length + 1;
+    supplies.push({ id, supplierId, supplierName, datetime: formatDateTime(), status: "Draft", totalCost: qty * unitCost, items: [{ materialName, qty, unitCost }] });
+    renderSupplies();
+    showToast("Заказ поставщику создан", "success");
+  }
+
+  function receiveSupply(id) {
+    const sup = supplies.find(s => s.id === id);
+    if (!sup || sup.status === "Received") return;
+    sup.status = "Received";
+    sup.receivedAt = formatDateTime();
+    (sup.items || []).forEach(it => {
+      addMaterialMovement(it.materialName, it.qty);
+      // enrich with cost locally
+      const mat = materials.find(m => m.name.toLowerCase() === it.materialName.toLowerCase());
+      if (mat) mat.unitCost = it.unitCost;
+    });
+    renderMaterialsTable();
+    renderSupplies();
+    renderSuppliers();
+    showToast("Поставка принята", "success");
+  }
+
+  function renderSupplies(){
+    const tbody = document.getElementById("suppliesBody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+    supplies.forEach((s, idx) => {
+      const tr = document.createElement("tr");
+      const total = s.totalCost || ((s.items || []).reduce((sum,i)=>sum + (i.qty||0)*(i.unitCost||0),0));
+      const action = s.status === "Draft" ? `<button class="btn btn-secondary" data-receive="${s.id}">Принять</button>` : "-";
+      tr.innerHTML = `
+        <td>${idx + 1}</td>
+        <td>${s.supplierName || (suppliers.find(x=>x.id===s.supplierId)?.name || "-")}</td>
+        <td>${s.datetime || ""}</td>
+        <td>${renderStatusBadge(s.status)}</td>
+        <td>${formatMoney(total || 0)}</td>
+        <td>${action}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    tbody.querySelectorAll("[data-receive]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = Number(btn.getAttribute("data-receive"));
+        if (window.receivePurchaseOrder) return window.receivePurchaseOrder(id);
+        receiveSupply(id);
+      });
+    });
   }
 
   function markOrderPaid(orderId, method) {
@@ -1143,6 +1344,7 @@
     renderOrdersAdmin();
     renderPaymentsTable();
     refreshSummary();
+    renderClientOrders(currentUser ? currentUser.name : "");
     rebuildReports();
     showToast("Оплата проведена (" + method + ")", "success");
   }
@@ -1164,16 +1366,110 @@
     const itemsHtml = order.items
       .map(i => `<li>${i.name} — ${i.qty} шт. × ${formatMoney(i.price)}</li>`)
       .join("");
+    const materialsHtml = (order.requiredMaterials || [])
+      .map(m => `
+        <li>${m.name}: требуется ${m.requiredQty}${m.unit || ''}, в наличии ${m.inStockQty || 0}${m.unit || ''}${m.missingQty > 0 ? ' — <b style="color:red">не хватает ' + m.missingQty + '</b>' : ''}</li>`)
+      .join("");
+    const prodInfo = (order.production_started_at ? `<p><b>Производство:</b> запущено ${order.production_started_at}, ETA ${order.production_ends_at || '—'}</p>` : '');
     const html = `
       <p><b>Клиент:</b> ${order.customer}</p>
       <p><b>Дата:</b> ${order.datetime}</p>
+      ${prodInfo}
       <p><b>Состав заказа:</b></p>
       <ul>${itemsHtml}</ul>
+      <p><b>Потребность в материалах:</b></p>
+      <ul>${materialsHtml || '<li>— нет данных</li>'}</ul>
       <p><b>Сумма:</b> ${formatMoney(order.total)}</p>
       <p><b>Оплата:</b> ${order.paid ? order.paymentMethod : "Не оплачено"}</p>
       <p><b>Статус:</b> ${order.status}</p>
     `;
     openModal("Заказ #" + order.id, html);
+  }
+
+  async function startProduction(orderId) {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+    // try API first
+    try {
+      const token = localStorage.getItem('erp_token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      const res = await fetch((window.ERP_API_BASE||'') + '/api/orders/' + orderId + '/start-production', { method: 'POST', headers });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(res.status + ' ' + txt);
+      }
+      const body = await res.json().catch(()=>null);
+      // refresh from API via adapter if present
+      if (typeof syncFromApi === 'function') await syncFromApi();
+      else {
+        // optimistic local update
+        order.status = 'В производстве';
+        order.production_started_at = new Date().toISOString();
+        if (body && body.production_ends_at) order.production_ends_at = body.production_ends_at;
+      }
+      renderOrdersAdmin(); renderMaterialsTable(); rebuildReports();
+      showToast('Производство запущено (API)', 'success');
+      return;
+    } catch (err) {
+      // fallback to local behavior
+    }
+
+    // local mode: compute requiredMaterials from order or items
+    const reqMats = order.requiredMaterials || order.required_materials || computeRequiredMaterials(order.items.map(i=>({ product: PRODUCTS.find(p=>p.name===i.name), qty: i.qty })) );
+    const missing = reqMats.filter(m => (m.inStockQty || 0) < (m.requiredQty || 0));
+    if (missing.length) {
+      alert('Не хватает материалов:\n' + missing.map(m => m.name + ': ' + m.missingQty).join('\n'));
+      return;
+    }
+    // decrement local materials
+    reqMats.forEach(m => {
+      const mat = materials.find(mm => mm.name === m.name);
+      if (!mat) return;
+      mat.qty = (mat.qty || 0) - (m.requiredQty || 0);
+    });
+    // compute production duration
+    let totalMinutes = 0;
+    order.items.forEach(it => {
+      const prod = PRODUCTS.find(p => p.name === it.name) || getProductById(it.productId);
+      if (prod && prod.productionTimeMinutes) totalMinutes += (prod.productionTimeMinutes || 0) * (it.qty || 0);
+    });
+    const now = new Date();
+    order.production_started_at = now.toISOString();
+    order.production_ends_at = new Date(now.getTime() + totalMinutes * 60000).toISOString();
+    order.status = 'В производстве';
+    renderOrdersAdmin(); renderMaterialsTable(); rebuildReports();
+    showToast('Производство запущено (локально)', 'success');
+  }
+
+  function computeRequiredMaterialsFromCart() {
+    // cartItems: { product, qty }
+    const entries = cartItems.map(i => ({ product: i.product, qty: i.qty }));
+    return computeRequiredMaterials(entries);
+  }
+
+  function computeRequiredMaterials(entries) {
+    // entries: [{ product, qty }]
+    const map = {};
+    entries.forEach(e => {
+      const prod = e.product;
+      const qty = Number(e.qty) || 0;
+      if (!prod || !prod.recipe) return;
+      prod.recipe.forEach(ing => {
+        const name = ing.name;
+        const add = (ing.qtyPerUnit || 0) * qty;
+        if (!map[name]) map[name] = 0;
+        map[name] += add;
+      });
+    });
+    const result = Object.keys(map).map(name => {
+      const requiredQty = Number(map[name]);
+      const mat = materials.find(m => m.name === name) || {};
+      const inStockQty = Number(mat.qty || 0);
+      const missingQty = Math.max(0, requiredQty - inStockQty);
+      return { name, requiredQty, inStockQty, missingQty };
+    });
+    return result;
   }
 
   function renderOrdersAdmin() {
@@ -1184,9 +1480,14 @@
     tbody.innerHTML = "";
     const list = orders.filter(o => filter === "all" || o.status === filter);
 
-    list.forEach(o => {
+    const active = list.filter(o => o.status !== "Выдан");
+    const issued = list.filter(o => o.status === "Выдан");
+
+    const renderRow = (o, targetTbody) => {
       const tr = document.createElement("tr");
       const itemsText = o.items.map(i => `${i.name} (${i.qty} шт.)`).join(", ");
+      const sched = o.production_scheduled_start || o.production_started_at || '';
+      const eta = o.production_ends_at || '';
       tr.innerHTML = `
         <td>${o.id}</td>
         <td>${o.datetime}</td>
@@ -1194,6 +1495,7 @@
         <td>${itemsText}</td>
         <td>${formatMoney(o.total)}</td>
         <td>${renderStatusBadge(o.status)}</td>
+        <td>${sched ? `<small>начало: ${sched}</small><br/><small>ETA: ${eta}</small>` : ''}</td>
         <td>${renderPaymentBadge(o)}</td>
         <td>
           <button class="btn btn-secondary btn-sm" data-view="${o.id}">🔍</button>
@@ -1203,8 +1505,42 @@
           <button class="btn btn-primary btn-sm" data-pay="${o.id}">Оплатить</button>
         </td>
       `;
-      tbody.appendChild(tr);
-    });
+      targetTbody.appendChild(tr);
+    };
+
+    active.forEach(o => renderRow(o, tbody));
+
+    // issued block
+    const issuedContainer = document.getElementById("adminOrdersIssued");
+    if (issuedContainer) {
+      issuedContainer.innerHTML = "";
+      if (issued.length) {
+        const table = document.createElement("table");
+        table.style.width = "100%";
+        table.innerHTML = `
+          <thead><tr><th>#</th><th>Дата</th><th>Клиент</th><th>Состав</th><th>Сумма</th><th>Статус</th><th>Оплата</th></tr></thead>
+          <tbody></tbody>
+        `;
+        const issuedBody = table.querySelector('tbody');
+        issued.forEach(o => {
+          const tr = document.createElement('tr');
+          const itemsText = o.items.map(i => `${i.name} (${i.qty} шт.)`).join(', ');
+          tr.innerHTML = `
+            <td>${o.id}</td>
+            <td>${o.datetime}</td>
+            <td>${o.customer}</td>
+            <td>${itemsText}</td>
+            <td>${formatMoney(o.total)}</td>
+            <td>${renderStatusBadge(o.status)}</td>
+            <td>${renderPaymentBadge(o)}</td>
+          `;
+          issuedBody.appendChild(tr);
+        });
+        issuedContainer.appendChild(table);
+      } else {
+        issuedContainer.innerHTML = "<p class='muted'>Выданных заказов нет</p>";
+      }
+    }
 
     tbody.querySelectorAll("button[data-pay]").forEach(btn => {
       btn.addEventListener("click", () => {
@@ -1216,7 +1552,7 @@
     tbody.querySelectorAll("button[data-prod]").forEach(btn => {
       btn.addEventListener("click", () => {
         const id = parseInt(btn.getAttribute("data-prod"), 10);
-        updateOrderStatus(id, "В производстве");
+        startProduction(id);
       });
     });
     tbody.querySelectorAll("button[data-ready]").forEach(btn => {
@@ -1252,10 +1588,20 @@
         <td>${o.datetime}</td>
         <td>${itemsText}</td>
         <td>${formatMoney(o.total)}</td>
-        <td>${renderPaymentBadge(o)}</td>
+        <td>${renderPaymentBadge(o)} ${(!o.paid && o.paymentMethod && o.paymentMethod.startsWith("карта")) ? `<button class="btn btn-primary btn-sm" data-client-pay="${o.id}">Оплатить</button>` : (!o.paid && o.paymentMethod === "наличные" ? "<br/><small>Оплата при получении</small>" : '')}</td>
         <td>${renderStatusBadge(o.status)}</td>
       `;
       tbody.appendChild(tr);
+    });
+
+    tbody.querySelectorAll("[data-client-pay]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = parseInt(btn.getAttribute("data-client-pay"), 10);
+        const last4 = prompt("Введите последние 4 цифры карты (для чека)", "1234");
+        const safe = (last4 || "").replace(/\D/g, "").slice(-4);
+        if (!safe) { alert("Нужно указать цифры карты для оплаты"); return; }
+        markOrderPaid(id, `карта ****${safe}`);
+      });
     });
   }
 
@@ -1276,6 +1622,8 @@
     const paidSum = paidOrders.reduce((s, o) => s + o.total, 0);
     const issuedCount = orders.filter(o => o.status === "Выдан").length;
     const lowStockCount = materials.filter(m => m.qty < m.minQty).length;
+    // production queue length (scheduled or running)
+    const productionQueue = orders.filter(o => o.production_scheduled_start || o.production_started_at || o.production_ends_at).length;
 
     if (totalOrdersEl) totalOrdersEl.textContent = total.toString();
     if (unpaidEl) unpaidEl.textContent = unpaidCount.toString();
@@ -1286,6 +1634,8 @@
     if (dashPaidAmount) dashPaidAmount.textContent = formatMoney(paidSum);
     if (dashIssuedOrders) dashIssuedOrders.textContent = issuedCount.toString();
     if (dashLowStock) dashLowStock.textContent = lowStockCount.toString();
+    const dashQueue = document.getElementById('dashProductionQueue');
+    if (dashQueue) dashQueue.textContent = productionQueue.toString();
   }
 
   function renderPaymentsTable() {
@@ -1332,7 +1682,200 @@
       html += `</ul><p class="muted">Позиции ниже минимума: <b>${lowCount}</b></p>`;
       inv.innerHTML = html;
     }
+    // render production queue panel
+    if (typeof renderProductionQueue === 'function') renderProductionQueue();
   }
+
+  async function renderProductionQueue() {
+    const tbody = document.getElementById('productionQueueBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    let list = [];
+    // try server report
+    try {
+      const res = await fetch((window.ERP_API_BASE||'') + '/api/reports/schedule');
+      if (res.ok) list = await res.json();
+    } catch (e) {
+      // fallback to local orders
+      list = orders.filter(o => o.production_scheduled_start || o.production_started_at || o.production_ends_at).map(o => ({ id: o.id, customer: o.customer, status: o.status, scheduled_start: o.production_scheduled_start || o.production_started_at || null, ends_at: o.production_ends_at || null }));
+    }
+    // sort by start time ascending
+    list.sort((a,b)=> new Date(a.scheduled_start || a.started_at || a.ends_at || 0) - new Date(b.scheduled_start || b.started_at || b.ends_at || 0));
+
+    list.forEach(o => {
+      const now = new Date();
+      const end = o.ends_at ? new Date(o.ends_at) : null;
+      const remaining = end ? Math.max(0, Math.ceil((end.getTime() - now.getTime())/60000)) : null;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${o.id}</td><td>${o.customer}</td><td>${renderStatusBadge(o.status)}</td><td>${o.scheduled_start || ''}</td><td>${o.ends_at || ''}</td><td>${remaining != null ? remaining + ' мин' : ''}</td><td>${o.reserved_qty || 0}</td><td>${o.consumed_qty || 0}</td><td><button class="btn btn-secondary btn-sm" data-cancel="${o.id}">Отменить</button> <button class="btn btn-secondary btn-sm" data-resched="${o.id}">Переназн.</button></td>`;
+      tbody.appendChild(tr);
+    });
+    // wire cancel/reschedule buttons
+    tbody.querySelectorAll('button[data-cancel]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = parseInt(btn.getAttribute('data-cancel'), 10);
+        if (!confirm('Отменить запланированное производство для заказа #' + id + '?')) return;
+        try {
+          await fetch((window.ERP_API_BASE||'') + '/api/orders/' + id + '/cancel-production', { method: 'POST' });
+          showToast('Производство отменено', 'info');
+          if (typeof renderProductionQueue === 'function') renderProductionQueue();
+          if (typeof renderOrdersAdmin === 'function') renderOrdersAdmin();
+        } catch (e) { alert('Ошибка отмены: ' + e.message); }
+      });
+    });
+    tbody.querySelectorAll('button[data-resched]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = parseInt(btn.getAttribute('data-resched'), 10);
+        const minutes = parseInt(prompt('Сдвинуть старт на сколько минут вперед?', '30'), 10);
+        if (isNaN(minutes)) return;
+        try {
+          const res = await fetch((window.ERP_API_BASE||'') + '/api/orders/' + id + '/reschedule', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ minutesFromNow: minutes }) });
+          if (!res.ok) throw new Error(await res.text());
+          showToast('Производство переназначено', 'success');
+          if (typeof renderProductionQueue === 'function') renderProductionQueue();
+          if (typeof renderOrdersAdmin === 'function') renderOrdersAdmin();
+        } catch (e) { alert('Ошибка переназначения: ' + e.message); }
+      });
+    });
+    renderProductionSlots(list);
+  }
+
+  function renderProductionSlots(list) {
+    const container = document.getElementById('productionSlots');
+    if (!container) return;
+    container.innerHTML = '';
+    const capacityInput = document.getElementById('productionCapacityInput');
+    const capacity = parseInt(capacityInput && capacityInput.value, 10) || 2;
+    // Build slots and assign jobs greedily by scheduled_start using server-provided start/ends
+    const jobs = (list || []).map(o => ({ id: o.id, start: o.scheduled_start || o.started_at || null, ends: o.ends_at || null, status: o.status }))
+      .filter(x => x.start || x.ends)
+      .map(j => ({ id: j.id, start: j.start ? new Date(j.start) : null, ends: j.ends ? new Date(j.ends) : null, status: j.status }));
+    jobs.sort((a,b)=> (a.start && b.start) ? a.start - b.start : (a.ends && b.ends) ? a.ends - b.ends : 0);
+
+    // initialize slots: each slot has availableAt and jobs[]
+    const slots = [];
+    for (let i=0;i<capacity;i++) slots.push({ availableAt: new Date(), jobs: [] });
+
+    jobs.forEach(job => {
+      // pick earliest slot (min availableAt)
+      let idx = 0; for (let i=1;i<slots.length;i++) if (slots[i].availableAt < slots[idx].availableAt) idx = i;
+      // schedule start = max(slot.availableAt, job.start || now)
+      const start = job.start && job.start > slots[idx].availableAt ? job.start : slots[idx].availableAt;
+      const ends = job.ends || new Date(start.getTime() + 1000);
+      slots[idx].jobs.push({ id: job.id, start, ends, status: job.status });
+      slots[idx].availableAt = new Date(ends);
+    });
+
+    // render slots
+    slots.forEach((slotObj, i) => {
+      const slot = document.createElement('div');
+      slot.style.flex = '1';
+      slot.style.minHeight = '80px';
+      slot.style.border = '1px solid #ddd';
+      slot.style.borderRadius = '6px';
+      slot.style.padding = '6px';
+      slot.style.background = '#fff';
+      const header = document.createElement('div');
+      header.style.fontSize = '12px';
+      header.style.color = '#666';
+      header.textContent = `Слот ${i+1}`;
+      slot.appendChild(header);
+      if (slotObj.jobs.length === 0) {
+        const empty = document.createElement('div'); empty.style.marginTop='8px'; empty.textContent = '— пусто'; slot.appendChild(empty);
+      } else {
+        slotObj.jobs.forEach(j => {
+          const wrapper = document.createElement('div'); wrapper.style.marginTop='6px'; wrapper.style.padding='6px'; wrapper.style.borderTop='1px dashed #eee';
+          const title = document.createElement('div'); title.innerHTML = `<b>#${j.id}</b> ${j.status}`;
+          const times = document.createElement('div'); times.style.fontSize='12px'; times.style.whiteSpace='pre';
+          const countdown = document.createElement('div'); countdown.style.fontSize='12px'; countdown.style.color = '#b12704'; countdown.className = 'slot-countdown';
+          times.textContent = `начало: ${j.start ? j.start.toLocaleString() : ''}\nETA: ${j.ends ? j.ends.toLocaleString() : ''}`;
+          wrapper.appendChild(title); wrapper.appendChild(times); wrapper.appendChild(countdown);
+          // attach meta to element for countdown updates
+          wrapper._meta = { id: j.id, ends: j.ends }; 
+          slot.appendChild(wrapper);
+        });
+      }
+      container.appendChild(slot);
+    });
+
+    // setup countdown updater
+    if (window._slotCountdownInterval) clearInterval(window._slotCountdownInterval);
+    window._slotCountdownInterval = setInterval(()=>{
+      document.querySelectorAll('.slot-countdown').forEach(el => {
+        const parent = el.parentElement;
+        const meta = parent && parent._meta;
+        if (!meta || !meta.ends) { el.textContent = ''; return; }
+        const diff = meta.ends.getTime() - Date.now();
+        el.textContent = diff > 0 ? `Осталось: ${formatCountdown(diff)}` : 'Завершено';
+      });
+    }, 1000);
+  }
+
+  function formatCountdown(ms) {
+    const s = Math.max(0, Math.floor(ms/1000));
+    const hh = Math.floor(s/3600); const mm = Math.floor((s%3600)/60); const ss = s%60;
+    return (hh>0?hh+':':'') + String(mm).padStart(2,'0') + ':' + String(ss).padStart(2,'0');
+  }
+
+  // Poll schedule every 10s and auto-complete finished orders
+  async function pollSchedule() {
+    try {
+      const res = await fetch((window.ERP_API_BASE||'') + '/api/reports/schedule');
+      if (!res.ok) throw new Error('no schedule');
+      const list = await res.json();
+      // update local orders from schedule
+      const now = new Date();
+      // track completions to notify
+      const toComplete = [];
+      list.forEach(s => {
+        const o = orders.find(x => x.id === s.id);
+        if (o) {
+          o.production_scheduled_start = s.scheduled_start || o.production_scheduled_start;
+          o.production_started_at = s.started_at || o.production_started_at;
+          o.production_ends_at = s.ends_at || o.production_ends_at;
+          // status may arrive as Назначено/В производстве/Готов
+          if (s.status) o.status = s.status;
+        }
+        if (s.ends_at && new Date(s.ends_at) <= now) toComplete.push(s.id);
+      });
+      renderProductionQueue();
+      // auto-complete those past ETA and notify
+      const notified = JSON.parse(localStorage.getItem('erp_notified_productions') || '[]');
+      for (const id of toComplete) {
+        if (!notified.includes(id)) {
+          // mark complete via API
+          await fetch((window.ERP_API_BASE||'') + '/api/orders/' + id + '/complete-production', { method: 'POST' }).catch(()=>null);
+          // show browser notification
+          try {
+            if (Notification && Notification.permission === 'granted') {
+              new Notification('Производство завершено', { body: 'Заказ #' + id + ' готов.' });
+            }
+          } catch (e) {}
+          notified.push(id);
+        }
+      }
+      try { localStorage.setItem('erp_notified_productions', JSON.stringify(notified)); } catch(e){}
+    } catch (e) {
+      // ignore
+    } finally {
+      setTimeout(pollSchedule, 10000);
+    }
+  }
+
+  // Wire capacity control
+  document.addEventListener('click', (e) => {
+    if (e.target && e.target.id === 'btnSetCapacity') {
+      const val = parseInt(document.getElementById('productionCapacityInput').value, 10) || 2;
+      fetch((window.ERP_API_BASE||'') + '/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'production_capacity', value: val }) })
+        .then(()=>{ showToast('Ёмкость обновлена', 'success'); })
+        .catch(()=>{ showToast('Не удалось сохранить ёмкость', 'error'); });
+    }
+  });
+
+  // start polling if API available
+  (function startPollingIfApi(){
+    fetch((window.ERP_API_BASE||'') + '/api/health').then(r=>{ if (r.ok) pollSchedule(); }).catch(()=>{});
+  })();
 
   // ==== DEMO ДАННЫЕ ====
   function seedDemoData() {
@@ -1443,11 +1986,13 @@
     e.preventDefault();
     const name = document.getElementById("loginName").value.trim();
     const role = document.getElementById("loginRole").value;
+    const email = document.getElementById("loginEmail") ? document.getElementById("loginEmail").value.trim() : '';
+    const password = document.getElementById("loginPassword") ? document.getElementById("loginPassword").value : '';
     if (!name) {
       alert("Введите имя пользователя");
       return;
     }
-    currentUser = { name, role };
+    currentUser = { name, role, email };
     document.getElementById("headerUser").textContent = `${name} (${role})`;
 
     if (role === "client") {
@@ -1462,12 +2007,18 @@
       rebuildReports();
       showToast("Вход в админскую часть как " + role, "info");
     }
+
+    // If user entered credentials, keep them for adapter to use immediately
+    if (email && password) {
+      try { localStorage.setItem('erp_last_login_email', email); } catch(e){}
+    }
   }
 
   function logout(){
     currentUser = null;
     document.getElementById("headerUser").textContent = "Не авторизован";
     showScreen("login");
+    try { localStorage.removeItem('erp_token'); } catch(e){}
     showToast("Вы вышли из системы", "info");
   }
 
@@ -1506,6 +2057,23 @@
     renderPaymentsTable();
     refreshSummary();
     rebuildReports();
+
+    // request notification permission for production complete events
+    if (window.Notification && Notification.permission !== 'granted') {
+      try { Notification.requestPermission().then(()=>{}); } catch(e){}
+    }
+
+    // load settings (production_capacity) from API if available
+    (async function loadSettings(){
+      try {
+        const res = await fetch((window.ERP_API_BASE||'') + '/api/settings');
+        if (!res.ok) return;
+        const s = await res.json();
+        const cap = parseInt(s.production_capacity || s.productionCapacity || s.production_capacity, 10) || null;
+        const input = document.getElementById('productionCapacityInput');
+        if (cap && input) input.value = cap;
+      } catch(e){}
+    })();
 
     document.getElementById("loginForm").addEventListener("submit", onLoginSubmit);
     document.getElementById("btnClientLogout").addEventListener("click", logout);
@@ -1550,9 +2118,24 @@
   let method = "наличные";
   if (cardRadio && cardRadio.checked) method = "карта";
 
-  const order = createOrderFromCart(currentUser.name, method);
+  console.debug('[UI] checkout click, cart snapshot:', cartItems);
+  const order = createOrderFromCart(currentUser.name, method, cartItems);
   if (order) {
-    showToast("Заказ создан! № " + order.id, "success");
+    if (method === "карта") {
+      const last4 = prompt("Введите последние 4 цифры карты (для чека)", "1234");
+      const safe = (last4 || "").replace(/\D/g, "").slice(-4);
+      if (!safe) { alert("Нужно указать цифры карты для оплаты"); return; }
+      markOrderPaid(order.id, `карта ****${safe}`);
+      showToast("Заказ создан и оплачен № " + order.id, "success");
+    } else {
+      order.paymentMethod = "наличные";
+      order.paid = false;
+      showToast("Заказ создан. Оплата при получении. № " + order.id, "info");
+      renderClientOrders(currentUser ? currentUser.name : "");
+      renderOrdersAdmin();
+      refreshSummary();
+      rebuildReports();
+    }
   }
 });
 
@@ -1580,6 +2163,46 @@
       supplierForm.reset();
       showToast("Поставщик добавлен", "success");
     });
+
+    const purchaseForm = document.getElementById("purchaseForm");
+    if (purchaseForm) {
+      purchaseForm.addEventListener("submit", e => {
+        e.preventDefault();
+        const supplierId = Number(document.getElementById("purchaseSupplier").value);
+        const supplier = suppliers.find(s => s.id === supplierId);
+        const materialName = document.getElementById("purchaseMaterial").value.trim();
+        const qty = Number(document.getElementById("purchaseQty").value || 0);
+        const unitCost = Number(document.getElementById("purchaseUnitCost").value || 0);
+        if (!materialName || qty <= 0) { alert("Укажите сырьё и количество"); return; }
+        if (window.createPurchaseOrder) return window.createPurchaseOrder(supplierId, materialName, qty, unitCost);
+        addSupplyDraft(supplierId, supplier ? supplier.name : "Поставщик", materialName, qty, unitCost);
+        purchaseForm.reset();
+        renderSupplierSelect();
+      });
+    }
+
+    const btnGeneratePurchase = document.getElementById("btnGeneratePurchase");
+    if (btnGeneratePurchase) {
+      btnGeneratePurchase.addEventListener("click", () => {
+        const deficits = materials.filter(m => (m.qty || 0) < (m.minQty || 0)).map(m => ({ name: m.name, need: Math.max(0, m.minQty - m.qty) }));
+        if (!deficits.length) { showToast("Дефицита нет", "info"); return; }
+        const supplierSel = document.getElementById("purchaseSupplier");
+        const supplierId = supplierSel ? Number(supplierSel.value) : null;
+        const supplier = suppliers.find(s => s.id === supplierId);
+        // создаём один заказ с первой позицией; если нужно — можно расширить на несколько
+        const first = deficits[0];
+        const unitCost = 0;
+        if (window.createPurchaseOrder) {
+          window.createPurchaseOrder(supplierId, first.name, first.need, unitCost).then(() => {
+            showToast("Создан заказ на дефицит: " + first.name, "success");
+          }).catch(err => alert(err.message));
+        } else {
+          addSupplyDraft(supplierId, supplier ? supplier.name : "Поставщик", first.name, first.need, unitCost);
+          showToast("Черновик заказа на дефицит создан: " + first.name, "success");
+        }
+        renderSupplies();
+      });
+    }
 
     const orderForm = document.getElementById("orderForm");
     orderForm.addEventListener("submit", e => {
@@ -1611,8 +2234,64 @@
         themeBtn.textContent = "☀️ Светлая";
       }
     }
+
+    // Export / Import state buttons
+    const exportBtn = document.getElementById('exportStateBtn');
+    const importFile = document.getElementById('importStateFile');
+    if (exportBtn) {
+      exportBtn.addEventListener('click', () => {
+        try {
+          const txt = window.erpStorage && window.erpStorage.exportState ? window.erpStorage.exportState() : null;
+          if (!txt) { alert('Невозможно экспортировать состояние'); return; }
+          const blob = new Blob([txt], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'erp-demo-state.json';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        } catch (e) { console.error(e); alert('Ошибка экспорта'); }
+      });
+    }
+    if (importFile) {
+      importFile.addEventListener('change', (ev) => {
+        const f = ev.target.files && ev.target.files[0];
+        if (!f) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const ok = window.erpStorage && window.erpStorage.importState ? window.erpStorage.importState(e.target.result) : false;
+            if (ok) {
+              showToast('Состояние импортировано', 'success');
+              // re-render
+              if (typeof renderCatalog === 'function') renderCatalog();
+              if (typeof renderCart === 'function') renderCart();
+              if (typeof renderMaterialsTable === 'function') renderMaterialsTable();
+              if (typeof renderSuppliers === 'function') renderSuppliers();
+              if (typeof renderOrdersAdmin === 'function') renderOrdersAdmin();
+              if (typeof renderPaymentsTable === 'function') renderPaymentsTable();
+              if (typeof renderClientOrders === 'function') renderClientOrders(currentUser ? currentUser.name : '');
+              if (typeof refreshSummary === 'function') refreshSummary();
+              if (typeof rebuildReports === 'function') rebuildReports();
+            } else {
+              alert('Неверный файл состояния');
+            }
+          } catch (err) { console.error(err); alert('Ошибка импорта'); }
+        };
+        reader.readAsText(f);
+        // clear input
+        importFile.value = '';
+      });
+    }
   });
 </script>
+
+<!-- Optional: API adapter (calls backend if available) -->
+<script src="api-adapter.js"></script>
+<!-- Client-side persistence (localStorage) -->
+<script src="storage.js"></script>
 
 </body>
 </html>
