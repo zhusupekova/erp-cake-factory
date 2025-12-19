@@ -11,9 +11,15 @@
       if (s.materials) window.materials = s.materials;
       if (s.suppliers) window.suppliers = s.suppliers;
       if (s.cartItems) window.cartItems = s.cartItems;
+      if (s.cartDiscount) window.cartDiscount = s.cartDiscount;
       if (s.orders) window.orders = s.orders;
       if (s.payments) window.payments = s.payments;
       if (s.currentUser) window.currentUser = s.currentUser;
+      if (s.shiftAssignments) window.shiftAssignments = s.shiftAssignments;
+      if (s.notifyPrefs) window.notifyPrefs = s.notifyPrefs;
+      if (s.readyProducts) window.readyProducts = s.readyProducts;
+      if (s.shipments) window.shipments = s.shipments;
+      if (s.qcChecks) window.qcChecks = s.qcChecks;
       return true;
     } catch (e){ console.warn('loadState failed', e); return false; }
   }
@@ -25,9 +31,15 @@
         materials: window.materials,
         suppliers: window.suppliers,
         cartItems: window.cartItems,
+        cartDiscount: window.cartDiscount,
         orders: window.orders,
         payments: window.payments,
-        currentUser: window.currentUser
+        currentUser: window.currentUser,
+        shiftAssignments: window.shiftAssignments,
+        notifyPrefs: window.notifyPrefs,
+        readyProducts: window.readyProducts,
+        shipments: window.shipments,
+        qcChecks: window.qcChecks
       };
       localStorage.setItem(KEY, JSON.stringify(s));
     } catch (e){ console.warn('saveState failed', e); }
@@ -51,7 +63,10 @@
     const toWrap = [
       'addToCart','removeFromCart','changeCartQty','clearCart',
       'createOrderFromCart','addManualOrder','markOrderPaid','updateOrderStatus',
-      'addMaterialMovement','addSupplier'
+      'addMaterialMovement','addSupplier',
+      'applyPromo','resetPromo','assignJobToShift','removeJobFromShift',
+      'saveNotifyPrefs','recordQualityCheck','addReadyStock','releaseReadyStock',
+      'createShipment','updateShipmentStatus'
     ];
     toWrap.forEach(wrap);
 
@@ -77,9 +92,15 @@
         materials: window.materials,
         suppliers: window.suppliers,
         cartItems: window.cartItems,
+        cartDiscount: window.cartDiscount,
         orders: window.orders,
         payments: window.payments,
-        currentUser: window.currentUser
+        currentUser: window.currentUser,
+        shiftAssignments: window.shiftAssignments,
+        notifyPrefs: window.notifyPrefs,
+        readyProducts: window.readyProducts,
+        shipments: window.shipments,
+        qcChecks: window.qcChecks
       };
       return JSON.stringify(s, null, 2);
     } catch (e) { console.warn('exportState failed', e); return null; }
@@ -92,9 +113,15 @@
       if (s.materials) window.materials = s.materials;
       if (s.suppliers) window.suppliers = s.suppliers;
       if (s.cartItems) window.cartItems = s.cartItems;
+      if (s.cartDiscount) window.cartDiscount = s.cartDiscount;
       if (s.orders) window.orders = s.orders;
       if (s.payments) window.payments = s.payments;
       if (s.currentUser) window.currentUser = s.currentUser;
+      if (s.shiftAssignments) window.shiftAssignments = s.shiftAssignments;
+      if (s.notifyPrefs) window.notifyPrefs = s.notifyPrefs;
+      if (s.readyProducts) window.readyProducts = s.readyProducts;
+      if (s.shipments) window.shipments = s.shipments;
+      if (s.qcChecks) window.qcChecks = s.qcChecks;
       saveState();
       return true;
     } catch (e) { console.warn('importState failed', e); return false; }

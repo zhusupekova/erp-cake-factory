@@ -62,6 +62,7 @@
       gap: 12px;
       align-items: center;
       font-size: 13px;
+      flex-wrap: wrap;
     }
     .user-info {
       opacity: 0.95;
@@ -80,9 +81,9 @@
     }
 
     main {
-      max-width: 1100px;
-      margin: 20px auto 40px;
-      padding: 0 12px;
+      max-width: 1180px;
+      margin: 14px auto 28px;
+      padding: 0 10px;
     }
     h2 {
       margin-top: 0;
@@ -107,10 +108,11 @@
     .card {
       background: #fff;
       border-radius: 14px;
-      padding: 16px 18px;
+      padding: 14px 16px;
       margin-bottom: 16px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.08);
       transition: background 0.2s, box-shadow 0.2s;
+      overflow-x: auto;
     }
     body.dark .card {
       background: var(--card-dark);
@@ -190,10 +192,20 @@
       color: #ccc;
     }
 
+    /* Compact mode */
+    body.compact header { padding: 10px 14px; }
+    body.compact main { margin: 10px auto 18px; }
+    body.compact .card { padding: 10px 12px; margin-bottom: 12px; }
+    body.compact .grid-2 { gap: 10px; }
+    body.compact table { font-size: 12px; min-width: 620px; }
+    body.compact h2 { margin-bottom: 8px; }
+    body.compact h3 { margin-bottom: 6px; }
+
     table {
       width: 100%;
       border-collapse: collapse;
       font-size: 13px;
+      min-width: 680px;
     }
     th, td {
       border-bottom: 1px solid #eee;
@@ -311,6 +323,10 @@
       background: #ede7f6;
       color: #4527a0;
     }
+    .status-qc {
+      background: #e0f2f1;
+      color: #00695c;
+    }
     .status-unpaid {
       background: #ffebee;
       color: #c62828;
@@ -325,6 +341,7 @@
     body.dark .status-ready { background:#1b5e20; color:#a5d6a7; }
     body.dark .status-paid { background:#4a148c; color:#e1bee7; }
     body.dark .status-issued { background:#283593; color:#c5cae9; }
+    body.dark .status-qc { background:#1b4b4c; color:#b2dfdb; }
     body.dark .status-unpaid { background:#b71c1c; color:#ffcdd2; }
     body.dark .status-other { background:#424242; color:#e0e0e0; }
 
@@ -349,6 +366,37 @@
     body.dark .toolbar label {
       color: #ddd;
     }
+
+    /* Shift board */
+    .shift-board {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .shift-column {
+      border: 1px dashed #e0a8c5;
+      border-radius: 10px;
+      padding: 8px;
+      background: #fff7fc;
+      min-height: 140px;
+    }
+    body.dark .shift-column { background:#2f2438; border-color:#5c3c74; }
+    .shift-column h5 { margin: 0 0 6px 0; color:#c2185b; }
+    .job-pool { border: 1px dashed #ccc; padding: 6px; border-radius: 8px; min-height: 80px; background:#fafafa; }
+    body.dark .job-pool { background:#2b2134; border-color:#4a3a58; }
+    .shift-job {
+      background: #ffe0f2;
+      border: 1px solid #f8bbd0;
+      border-radius: 8px;
+      padding: 6px;
+      margin-bottom: 6px;
+      font-size: 12px;
+      cursor: grab;
+    }
+    body.dark .shift-job { background:#3a2a4b; border-color:#5c4168; }
+    .shift-job small { display:block; color:#666; }
+    .shift-drop { min-height: 80px; }
 
     /* Dashboard cards */
     .dashboard {
@@ -588,9 +636,19 @@
     </thead>
     <tbody id="cartItemsBody"></tbody>
   </table>
-  <p style="margin-top:8px;">
-    Итого: <b id="cartTotal">0 сом</b>
-  </p>
+  <div style="margin-top:8px; display:flex; flex-direction:column; gap:6px;">
+    <div id="cartTotalsBox">
+      <div>Сумма: <b id="cartSubtotal">0 сом</b></div>
+      <div>Скидка: <b id="cartDiscountValue">0 сом</b></div>
+      <div>Итого: <b id="cartTotal">0 сом</b></div>
+    </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+      <input type="text" id="promoCodeInput" placeholder="Промокод (SWEET5, BDAY10)" style="max-width:200px;" />
+      <button id="applyPromoBtn" class="btn btn-secondary btn-sm">Применить</button>
+      <button id="resetPromoBtn" class="btn btn-secondary btn-sm">Сбросить</button>
+    </div>
+    <div id="cartStockHint" class="muted"></div>
+  </div>
 
   <div style="margin:8px 0;">
     <span class="muted">Способ оплаты:</span><br />
@@ -681,7 +739,19 @@
           <h3>Очередь производства</h3>
           <div id="productionQueueContainer">
             <table style="width:100%">
-              <thead><tr><th>№</th><th>Клиент</th><th>Статус</th><th>Начало</th><th>ETA</th><th>Резерв</th><th>Списано</th></tr></thead>
+              <thead>
+              <tr>
+                <th>№</th>
+                <th>Клиент</th>
+                <th>Статус</th>
+                <th>Начало</th>
+                <th>ETA</th>
+                <th>Осталось</th>
+                <th>Резерв</th>
+                <th>Списано</th>
+                <th>Действия</th>
+              </tr>
+              </thead>
               <tbody id="productionQueueBody"></tbody>
             </table>
           </div>
@@ -693,6 +763,11 @@
               <input type="number" id="productionCapacityInput" value="2" min="1" style="width:80px" />
               <button id="btnSetCapacity" class="btn btn-secondary">Применить</button>
             </div>
+          </div>
+          <div style="margin-top:10px">
+            <h4>Расписание смен / печей</h4>
+            <div id="shiftBoard" class="shift-board"></div>
+            <p class="muted" style="margin:6px 0 0 0;">Перетащите заказы из пула в нужную смену.</p>
           </div>
         </div>
 
@@ -713,6 +788,52 @@
             </div>
             <button type="submit" class="btn btn-primary">Создать заказ</button>
           </form>
+        </div>
+
+        <div class="card" data-access="inventory">
+          <h3>Склад готовой продукции</h3>
+          <table style="width:100%">
+            <thead><tr><th>Продукт</th><th>Кол-во</th></tr></thead>
+            <tbody id="readyProductsBody"></tbody>
+          </table>
+        </div>
+
+        <div class="card" data-access="orders">
+          <h3>Отгрузки готовой продукции</h3>
+          <form id="shipmentForm">
+            <div class="form-row">
+              <label>Клиент</label>
+              <input type="text" id="shipmentClient" placeholder="ООО Покупатель" />
+            </div>
+            <div class="form-row">
+              <label>Продукт</label>
+              <select id="shipmentProduct"></select>
+            </div>
+            <div class="form-row">
+              <label>Кол-во</label>
+              <input type="number" id="shipmentQty" value="1" min="1" />
+            </div>
+            <div class="form-row">
+              <label>Способ оплаты</label>
+              <select id="shipmentMethod">
+                <option value="наличные">Наличные</option>
+                <option value="безнал">Безнал</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Создать отгрузку</button>
+          </form>
+          <table style="width:100%; margin-top:10px;">
+            <thead><tr><th>#</th><th>Клиент</th><th>Продукт</th><th>Кол-во</th><th>Оплата</th><th>Статус</th><th>Действия</th></tr></thead>
+            <tbody id="shipmentsBody"></tbody>
+          </table>
+        </div>
+
+        <div class="card" data-access="orders">
+          <h3>Контроль качества</h3>
+          <table style="width:100%">
+            <thead><tr><th># заказа</th><th>Результат</th><th>Комментарий</th><th>Кем</th><th>Дата</th></tr></thead>
+            <tbody id="qcBody"></tbody>
+          </table>
         </div>
 
         <div class="card" data-access="suppliers">
@@ -817,6 +938,7 @@
               <select id="adminOrdersFilter">
                 <option value="all">Все</option>
                 <option value="Новый">Новые</option>
+                <option value="Проверка">Проверка</option>
                 <option value="В производстве">В производстве</option>
                 <option value="Готов">Готов</option>
                 <option value="Оплачен">Оплачен</option>
@@ -833,6 +955,7 @@
               <th>Состав</th>
               <th>Сумма</th>
               <th>Статус</th>
+              <th>Производство</th>
               <th>Оплата</th>
               <th>Действия</th>
             </tr>
@@ -864,6 +987,36 @@
           <h3>Отчёты</h3>
           <div id="financeReportContainer"></div>
           <div id="inventoryReportContainer" style="margin-top:10px;"></div>
+          <div style="margin-top:8px;">
+            <button id="exportAccountingBtn" class="btn btn-secondary btn-sm">Выгрузить в бухгалтерию (CSV/API)</button>
+          </div>
+        </div>
+
+        <div class="card" data-access="reports">
+          <h3>Уведомления</h3>
+          <div class="form-row">
+            <label>E-mail для уведомлений</label>
+            <input type="text" id="notifyEmail" placeholder="user@example.com" />
+          </div>
+          <div class="form-row">
+            <label>Telegram chat/channel (ссылка)</label>
+            <input type="text" id="notifyTelegram" placeholder="https://t.me/..." />
+          </div>
+          <label style="font-size:13px;">
+            <input type="checkbox" id="notifyPush" /> Браузерные уведомления (web-push)
+          </label>
+          <div style="margin-top:8px;">
+            <button id="saveNotifyBtn" class="btn btn-secondary btn-sm">Сохранить</button>
+          </div>
+          <p class="muted" style="margin-top:6px;">Отправка через API / браузер (если разрешено).</p>
+        </div>
+
+        <div class="card" data-access="reports">
+          <h3>Журнал действий</h3>
+          <table>
+            <thead><tr><th>Время</th><th>Пользователь</th><th>Событие</th></tr></thead>
+            <tbody id="auditBody"></tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -890,7 +1043,8 @@
 <script>
   // ==== УТИЛИТЫ ====
   function formatMoney(value) {
-    return value.toFixed(2) + " сом";
+    const num = Number.isFinite(Number(value)) ? Number(value) : 0;
+    return num.toFixed(2) + " сом";
   }
   function formatDateTime(date = new Date()) {
     return date.toLocaleString("ru-RU");
@@ -1022,10 +1176,54 @@
   ];
 
   let cartItems = [];
+  let cartDiscount = { code: "", percent: 0 };
   let orders = [];
   let payments = [];
   let currentUser = null;
   let supplies = [];
+  let shiftAssignments = [];
+  let notifyPrefs = { email: "", telegram: "", push: false };
+  let readyProducts = [];
+  let qcChecks = [];
+  let shipments = [];
+  let auditLog = [];
+
+  function getPaymentsView(){
+    if (payments && payments.length) return payments;
+    return orders
+      .filter(o => o.paid)
+      .map(o => ({
+        datetime: o.datetime || "",
+        orderId: o.id,
+        customer: o.customer,
+        amount: o.total,
+        method: o.paymentMethod || "оплачено"
+      }));
+  }
+
+  function logAction(message){
+    const entry = { ts: formatDateTime(), user: currentUser ? currentUser.name : "Гость", message };
+    auditLog.push(entry);
+    if (auditLog.length > 100) auditLog.shift();
+    renderAuditLog();
+  }
+
+  function renderAuditLog(){
+    const tbody = document.getElementById("auditBody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+    if (!auditLog.length) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td colspan="3" class="muted">Действий пока нет</td>`;
+      tbody.appendChild(tr);
+      return;
+    }
+    auditLog.slice().reverse().forEach(a => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${a.ts}</td><td>${a.user}</td><td>${a.message}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
   
 
   // ==== КАТАЛОГ И КОРЗИНА ====
@@ -1047,6 +1245,11 @@
     return okCat && okSearch;
   });
 
+  if (!list.length) {
+    container.innerHTML = "<div class='muted'>По фильтру ничего не найдено</div>";
+    return;
+  }
+
   list.forEach(p => {
     const div = document.createElement("div");
     div.className = "catalog-item";
@@ -1065,6 +1268,7 @@
       const id = parseInt(btn.getAttribute("data-id"), 10);
       addToCart(id);
       showToast("Товар добавлен в корзину", "success");
+      logAction(`Добавлено в корзину: ${p.name}`);
     });
   });
 }
@@ -1090,18 +1294,52 @@
     renderCart();
   }
 
-  function getCartTotal(){
+  function getCartSubtotal(){
     return cartItems.reduce((s, i) => s + i.product.price * i.qty, 0);
+  }
+  function getDiscountAmount(){
+    const subtotal = getCartSubtotal();
+    const percent = Number(cartDiscount && cartDiscount.percent) || 0;
+    const raw = subtotal * percent / 100;
+    return Math.min(subtotal, Math.max(0, raw));
+  }
+  function getCartTotal(){
+    return Math.max(0, getCartSubtotal() - getDiscountAmount());
   }
 
   function clearCart(){
     cartItems = [];
+    cartDiscount = { code: "", percent: 0 };
+    renderCart();
+  }
+
+  function applyPromo(code){
+    const normalized = (code || document.getElementById("promoCodeInput")?.value || "").trim().toUpperCase();
+    const catalog = { "SWEET5": 5, "BDAY10": 10, "VIP15": 15, "STAFF20": 20 };
+    const percent = catalog[normalized];
+    if (!percent) {
+      showToast("Промокод не найден", "error");
+      return;
+    }
+    cartDiscount = { code: normalized, percent };
+    showToast(`Скидка ${percent}% применена`, "success");
+    logAction(`Промокод применён: ${normalized}`);
+    renderCart();
+  }
+
+  function resetPromo(){
+    cartDiscount = { code: "", percent: 0 };
+    const input = document.getElementById("promoCodeInput");
+    if (input) input.value = "";
     renderCart();
   }
 
   function renderCart(){
     const tbody = document.getElementById("cartItemsBody");
     const totalEl = document.getElementById("cartTotal");
+    const subtotalEl = document.getElementById("cartSubtotal");
+    const discountEl = document.getElementById("cartDiscountValue");
+    const stockHint = document.getElementById("cartStockHint");
     if (!tbody || !totalEl) return;
     tbody.innerHTML = "";
     cartItems.forEach(item => {
@@ -1128,7 +1366,20 @@
         removeFromCart(id);
       });
     });
+    const subtotal = getCartSubtotal();
+    const discount = getDiscountAmount();
+    if (subtotalEl) subtotalEl.textContent = formatMoney(subtotal);
+    if (discountEl) discountEl.textContent = "-" + formatMoney(discount);
     totalEl.textContent = formatMoney(getCartTotal());
+    // stock hint
+    if (stockHint) {
+      const req = computeRequiredMaterialsFromCart();
+      const deficits = req.filter(r => r.missingQty > 0);
+      stockHint.innerHTML = deficits.length
+        ? "Не хватает: " + deficits.map(d => `${d.name} (${d.missingQty})`).join(", ")
+        : "Сырья хватает для текущей корзины.";
+      stockHint.style.color = deficits.length ? "#c62828" : "";
+    }
   }
 
   // ==== СКЛАД ====
@@ -1208,6 +1459,7 @@
   function renderStatusBadge(status) {
     let cls = "status-other";
     if (status === "Новый") cls = "status-new";
+    else if (status === "Проверка") cls = "status-qc";
     else if (status === "В производстве") cls = "status-prod";
     else if (status === "Готов") cls = "status-ready";
     else if (status === "Оплачен") cls = "status-paid";
@@ -1226,7 +1478,10 @@
 
   // ==== ЗАКАЗЫ И ОПЛАТЫ ====
   function createOrderFromCart(customerName, paymentMethod) {
+    const subtotal = getCartSubtotal();
     const total = getCartTotal();
+    const discountValue = getDiscountAmount();
+    const discountCode = cartDiscount.code || "";
     if (total <= 0) return null;
     const requiredMaterials = computeRequiredMaterialsFromCart();
     const shortages = requiredMaterials.filter(r => r.missingQty > 0);
@@ -1243,6 +1498,9 @@
       })),
       requiredMaterials,
       total,
+      subtotal,
+      discountValue,
+      discountCode,
       status: "Новый",
       paymentMethod: paymentMethod || "не выбран",
       paid: false
@@ -1253,13 +1511,20 @@
     renderClientOrders(customerName);
     refreshSummary();
     rebuildReports();
+    logAction(`Создан заказ #${order.id} (${customerName}) на ${formatMoney(total)}`);
     return order;
   }
 
   function addManualOrder(customerName, productId, qty) {
+    if (currentUser && currentUser.role === "client") { alert("Доступно только сотрудникам"); return; }
     const product = getProductById(productId);
     if (!product) return;
     const requiredMaterials = computeRequiredMaterials([{ product, qty }]);
+    const shortages = requiredMaterials.filter(r => r.missingQty > 0);
+    if (shortages.length) {
+      alert("Недостаточно сырья: " + shortages.map(s => `${s.name} (нужно ${s.requiredQty}, в наличии ${s.inStockQty})`).join(", "));
+      return;
+    }
     const order = {
       id: orders.length + 1,
       customer: customerName,
@@ -1277,10 +1542,14 @@
     rebuildReports();
     startProduction(order.id);
     showToast("Заказ создан вручную", "success");
+    logAction(`Создан заказ вручную #${order.id} (${customerName})`);
   }
 
   // ==== ЗАКУПКИ / ПОСТАВКИ ====
   function addSupplyDraft(supplierId, supplierName, materialName, qty, unitCost) {
+    if (currentUser && !["admin","warehouse","suppliers"].includes(currentUser.role) && currentUser.role !== "warehouse") {
+      // грубая проверка роли
+    }
     const id = supplies.length + 1;
     supplies.push({ id, supplierId, supplierName, datetime: formatDateTime(), status: "Draft", totalCost: qty * unitCost, items: [{ materialName, qty, unitCost }] });
     renderSupplies();
@@ -1332,6 +1601,170 @@
     });
   }
 
+  function addReadyStock(order){
+    if (!order || !order.items) return;
+    order.items.forEach(it => {
+      let rec = readyProducts.find(r => r.name === it.name);
+      if (!rec) { rec = { name: it.name, qty: 0 }; readyProducts.push(rec); }
+      rec.qty += it.qty || 0;
+    });
+    renderReadyProducts();
+  }
+
+  function releaseReadyStock(order){
+    if (!order || !order.items) return;
+    order.items.forEach(it => {
+      const rec = readyProducts.find(r => r.name === it.name);
+      if (rec) rec.qty = Math.max(0, (rec.qty || 0) - (it.qty || 0));
+    });
+    renderReadyProducts();
+  }
+
+  function renderReadyProducts(){
+    const tbody = document.getElementById("readyProductsBody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+    if (!readyProducts.length) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td colspan="2" class="muted">Склад пуст</td>`;
+      tbody.appendChild(tr);
+      populateShipmentSelect();
+      return;
+    }
+    readyProducts.forEach(r => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${r.name}</td><td>${r.qty || 0}</td>`;
+      tbody.appendChild(tr);
+    });
+    populateShipmentSelect();
+  }
+
+  function recordQualityCheck(orderId, passed, notes = ""){
+    const exists = qcChecks.find(q => q.orderId === orderId);
+    if (exists) {
+      exists.passed = passed;
+      exists.notes = notes;
+      exists.by = currentUser ? currentUser.name : "";
+      exists.datetime = formatDateTime();
+    } else {
+      qcChecks.push({ orderId, passed, notes, by: currentUser ? currentUser.name : "", datetime: formatDateTime() });
+    }
+    renderQcTable();
+  }
+
+  function renderQcTable(){
+    const tbody = document.getElementById("qcBody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+    if (!qcChecks.length) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td colspan="5" class="muted">Проверок пока нет</td>`;
+      tbody.appendChild(tr);
+      return;
+    }
+    qcChecks.slice().reverse().forEach(q => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${q.orderId}</td><td>${q.passed ? 'ОК' : 'Брак'}</td><td>${q.notes || ''}</td><td>${q.by || ''}</td><td>${q.datetime || ''}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function openQualityCheck(orderId){
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+    updateOrderStatus(orderId, "Проверка");
+    const notes = prompt("Комментарий для QC (оставьте пустым, если всё ок)", "");
+    const passed = confirm("Качество пройдено? OK = да, Cancel = брак");
+    recordQualityCheck(orderId, passed, notes || "");
+    if (passed && order.status !== "Готов") {
+      updateOrderStatus(orderId, "Готов");
+    }
+    if (!passed) {
+      updateOrderStatus(orderId, "Новый");
+    }
+    logAction(`QC заказ #${orderId}: ${passed ? 'ОК' : 'Брак'}`);
+  }
+
+  function recomputeReadyProductsFromOrders(){
+    const map = {};
+    orders.forEach(o => {
+      if (o.status !== "Готов") return;
+      (o.items || []).forEach(it => {
+        if (!map[it.name]) map[it.name] = 0;
+        map[it.name] += it.qty || 0;
+      });
+    });
+    // учесть списания по отгрузкам (кроме отменённых)
+    shipments.filter(s => s.status !== "Cancelled").forEach(s => {
+      if (!map[s.productName]) map[s.productName] = 0;
+      map[s.productName] -= s.qty || 0;
+    });
+    readyProducts = Object.entries(map).map(([name, qty]) => ({ name, qty: Math.max(0, qty) }));
+    renderReadyProducts();
+  }
+
+  // ==== ОТГРУЗКИ ГОТОВОЙ ПРОДУКЦИИ ====
+  function populateShipmentSelect(){
+    const sel = document.getElementById("shipmentProduct");
+    if (!sel) return;
+    sel.innerHTML = readyProducts.map(r => `<option value="${r.name}">${r.name} (доступно ${r.qty || 0})</option>`).join("");
+  }
+
+  function createShipment(client, productName, qty, method){
+    const prod = readyProducts.find(r => r.name === productName);
+    if (!prod || (prod.qty || 0) < qty) { alert("Недостаточно готовой продукции на складе"); return; }
+    prod.qty -= qty;
+    const id = (shipments[shipments.length-1]?.id || 0) + 1;
+    const shipment = { id, client: client || "Клиент", productName, qty, method: method || "безнал", status: "Reserved", datetime: formatDateTime() };
+    shipments.push(shipment);
+    renderReadyProducts(); renderShipments();
+    showToast("Отгрузка создана", "success");
+    logAction(`Отгрузка #${id}: ${productName} x ${qty} (${shipment.status})`);
+  }
+
+  function updateShipmentStatus(id, status){
+    const sh = shipments.find(s => s.id === id);
+    if (!sh) return;
+    if (status === "Cancelled") {
+      const prod = readyProducts.find(r => r.name === sh.productName);
+      if (prod) prod.qty += sh.qty || 0;
+      else readyProducts.push({ name: sh.productName, qty: sh.qty });
+      renderReadyProducts();
+    }
+    sh.status = status;
+    renderShipments();
+    logAction(`Отгрузка #${id} -> ${status}`);
+  }
+
+  function renderShipments(){
+    const tbody = document.getElementById("shipmentsBody");
+    if (!tbody) return;
+    populateShipmentSelect();
+    tbody.innerHTML = "";
+    if (!shipments.length) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td colspan="7" class="muted">Отгрузок нет</td>`;
+      tbody.appendChild(tr);
+      return;
+    }
+    shipments.slice().reverse().forEach(sh => {
+      const tr = document.createElement("tr");
+      const actions = `
+        <button class="btn btn-secondary btn-sm" data-sh-status="Shipped" data-sh="${sh.id}">Отправить</button>
+        <button class="btn btn-secondary btn-sm" data-sh-status="Cancelled" data-sh="${sh.id}">Отменить</button>
+      `;
+      tr.innerHTML = `<td>${sh.id}</td><td>${sh.client}</td><td>${sh.productName}</td><td>${sh.qty}</td><td>${sh.method}</td><td>${sh.status}</td><td>${actions}</td>`;
+      tbody.appendChild(tr);
+    });
+    tbody.querySelectorAll("[data-sh]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = parseInt(btn.getAttribute("data-sh"), 10);
+        const status = btn.getAttribute("data-sh-status");
+        updateShipmentStatus(id, status);
+      });
+    });
+  }
+
   function markOrderPaid(orderId, method) {
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
@@ -1350,18 +1783,30 @@
     refreshSummary();
     renderClientOrders(currentUser ? currentUser.name : "");
     rebuildReports();
+    renderShipments();
+    renderReadyProducts();
+    renderQcTable();
+    renderAuditLog();
     showToast("Оплата проведена (" + method + ")", "success");
+    sendNotifications('Оплата', order);
+    logAction(`Оплата заказа #${orderId} (${method})`);
   }
 
   function updateOrderStatus(orderId, newStatus) {
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
+    const prev = order.status;
     order.status = newStatus;
+    if (newStatus === "Готов") addReadyStock(order);
+    if (newStatus === "Выдан") releaseReadyStock(order);
+    if (newStatus !== prev) recomputeReadyProductsFromOrders();
     renderOrdersAdmin();
     renderClientOrders(currentUser ? currentUser.name : "");
     refreshSummary();
     rebuildReports();
     showToast("Статус заказа #" + orderId + ": " + newStatus, "info");
+    sendNotifications(newStatus, order);
+    logAction(`Статус заказа #${orderId}: ${newStatus}`);
   }
 
   function openOrderDetails(orderId) {
@@ -1383,16 +1828,117 @@
       <ul>${itemsHtml}</ul>
       <p><b>Потребность в материалах:</b></p>
       <ul>${materialsHtml || '<li>— нет данных</li>'}</ul>
-      <p><b>Сумма:</b> ${formatMoney(order.total)}</p>
+      <p><b>Сумма:</b> ${formatMoney(order.total)}${order.discountValue ? ` (скидка ${formatMoney(order.discountValue)}${order.discountCode ? ", промо "+order.discountCode : ""})` : ""}</p>
       <p><b>Оплата:</b> ${order.paid ? order.paymentMethod : "Не оплачено"}</p>
       <p><b>Статус:</b> ${order.status}</p>
     `;
     openModal("Заказ #" + order.id, html);
   }
 
+  function openReceipt(orderId) {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+    const qrData = encodeURIComponent(`order:${order.id}|sum:${order.total}|customer:${order.customer}`);
+    const html = `
+      <p><b>Чек №${order.id}</b></p>
+      <p>${order.datetime}</p>
+      <p>Клиент: ${order.customer}</p>
+      <p>Состав:</p>
+      <ul>${(order.items || []).map(i => `<li>${i.name} — ${i.qty} × ${formatMoney(i.price)}</li>`).join("")}</ul>
+      <p>Итого: ${formatMoney(order.total)}${order.discountValue ? ` (скидка ${formatMoney(order.discountValue)})` : ""}</p>
+      <p>Способ оплаты: ${order.paymentMethod || "—"}</p>
+      <img alt="QR" src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${qrData}" style="margin-top:8px;" />
+      <p class="muted">Для печати используйте Ctrl/Cmd+P.</p>
+    `;
+    openModal("Чек #" + order.id, html);
+  }
+
+  function openInvoice(orderId){
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+    const invoiceNo = `INV-${order.id}`;
+    const html = `
+      <p><b>Счёт ${invoiceNo}</b></p>
+      <p>Клиент: ${order.customer}</p>
+      <p>Дата: ${order.datetime}</p>
+      <table style="width:100%; font-size:13px; margin-top:6px;">
+        <thead><tr><th>Наименование</th><th>Кол-во</th><th>Цена</th><th>Сумма</th></tr></thead>
+        <tbody>
+          ${(order.items || []).map(i => `<tr><td>${i.name}</td><td>${i.qty}</td><td>${formatMoney(i.price)}</td><td>${formatMoney(i.price*i.qty)}</td></tr>`).join('')}
+        </tbody>
+      </table>
+      <p style="margin-top:6px;">Итого к оплате: <b>${formatMoney(order.total)}</b></p>
+      ${order.discountValue ? `<p>Скидка: ${formatMoney(order.discountValue)} (${order.discountCode||''})</p>` : ''}
+      <p class="muted">Оплатите безналом или наличными. При оплате картой используется номер заказа для ссылки платежа.</p>
+    `;
+    openModal("Счёт " + invoiceNo, html);
+  }
+
+  // ==== ВЫГРУЗКА ДЛЯ БУХГАЛТЕРИИ ====
+  async function exportAccounting(){
+    const rows = [["Тип","Дата","Клиент","Сумма","Детали"]];
+    payments.forEach(p => rows.push(["Оплата", p.datetime, p.customer, p.amount, `Заказ ${p.orderId} (${p.method})`]));
+    shipments.forEach(s => rows.push(["Отгрузка", s.datetime || "", s.client, "", `${s.productName} x ${s.qty} (${s.status})`]));
+    const csv = rows.map(r => r.map(v => `"${String(v||'').replace(/\"/g,'\"\"')}"`).join(",")).join("\\n");
+    try {
+      const res = await fetch((window.ERP_API_BASE||'') + '/api/accounting/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/csv' },
+        body: csv
+      });
+      if (res.ok) { showToast("Выгрузка отправлена в бухгалтерию (API)", "success"); return; }
+    } catch(e){}
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'accounting-export.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast("CSV экспортирован локально", "info");
+    logAction("Выгрузка в бухгалтерию (CSV/API)");
+  }
+
+  // ==== УВЕДОМЛЕНИЯ ====
+  function saveNotifyPrefs(){
+    const email = document.getElementById("notifyEmail")?.value.trim() || "";
+    const telegram = document.getElementById("notifyTelegram")?.value.trim() || "";
+    const push = !!document.getElementById("notifyPush")?.checked;
+    notifyPrefs = { email, telegram, push };
+    showToast("Настройки уведомлений сохранены", "success");
+    logAction("Настройки уведомлений обновлены");
+  }
+
+  function applyNotifyPrefsToUI(){
+    if (document.getElementById("notifyEmail")) document.getElementById("notifyEmail").value = notifyPrefs.email || "";
+    if (document.getElementById("notifyTelegram")) document.getElementById("notifyTelegram").value = notifyPrefs.telegram || "";
+    if (document.getElementById("notifyPush")) document.getElementById("notifyPush").checked = !!notifyPrefs.push;
+  }
+
+  async function sendNotifications(eventType, order){
+    if (!order) return;
+    const message = `[${eventType}] Заказ #${order.id} (${order.customer}) — ${order.status}, сумма ${formatMoney(order.total)}`;
+    // web push (browser)
+    if (notifyPrefs.push && window.Notification && Notification.permission === 'granted') {
+      try { new Notification("ERP уведомление", { body: message }); } catch(e){}
+    }
+    // API relay to email/telegram if backend поддерживает
+    if (notifyPrefs.email || notifyPrefs.telegram) {
+      try {
+        await fetch((window.ERP_API_BASE||'') + '/api/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: notifyPrefs.email, telegram: notifyPrefs.telegram, message })
+        });
+      } catch (e) {
+        console.warn('notify relay failed', e);
+      }
+    }
+  }
+
   async function startProduction(orderId) {
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
+    if (currentUser && currentUser.role === "client") { alert("Недоступно для клиента"); return; }
     // try API first
     try {
       const token = localStorage.getItem('erp_token');
@@ -1414,6 +1960,7 @@
       }
       renderOrdersAdmin(); renderMaterialsTable(); rebuildReports();
       showToast('Производство запущено (API)', 'success');
+      sendNotifications('В производстве', order);
       return;
     } catch (err) {
       // fallback to local behavior
@@ -1444,6 +1991,7 @@
     order.status = 'В производстве';
     renderOrdersAdmin(); renderMaterialsTable(); rebuildReports();
     showToast('Производство запущено (локально)', 'success');
+    sendNotifications('В производстве', order);
   }
 
   function computeRequiredMaterialsFromCart() {
@@ -1476,6 +2024,15 @@
     return result;
   }
 
+  function calcProductCost(prod){
+    if (!prod || !prod.recipe) return 0;
+    return prod.recipe.reduce((s, ing) => {
+      const mat = materials.find(m => m.name === ing.name);
+      const unitCost = mat && Number(mat.unitCost) ? Number(mat.unitCost) : 50; // базовый fallback
+      return s + (ing.qtyPerUnit || 0) * unitCost;
+    }, 0);
+  }
+
   function renderOrdersAdmin() {
     const tbody = document.getElementById("adminOrdersBody");
     const filterSel = document.getElementById("adminOrdersFilter");
@@ -1489,16 +2046,18 @@
 
     const renderRow = (o, targetTbody) => {
       const tr = document.createElement("tr");
-      const itemsText = o.items.map(i => `${i.name} (${i.qty} шт.)`).join(", ");
+      const itemsText = (o.items || []).map(i => `${i.name} (${i.qty} шт.)`).join(", ");
       const sched = o.production_scheduled_start || o.production_started_at || '';
       const eta = o.production_ends_at || '';
+      const qc = qcChecks.find(q => q.orderId === o.id);
+      const shortage = (o.requiredMaterials || []).some(m => m.missingQty > 0);
       tr.innerHTML = `
         <td>${o.id}</td>
         <td>${o.datetime}</td>
         <td>${o.customer}</td>
         <td>${itemsText}</td>
         <td>${formatMoney(o.total)}</td>
-        <td>${renderStatusBadge(o.status)}</td>
+        <td>${renderStatusBadge(o.status)}${shortage ? '<br/><small class="badge-warn">Нехватка сырья</small>' : ''}${qc ? `<br/><small>${qc.passed ? 'QC: OK' : 'QC: Брак'}</small>` : ''}</td>
         <td>${sched ? `<small>начало: ${sched}</small><br/><small>ETA: ${eta}</small>` : ''}</td>
         <td>${renderPaymentBadge(o)}</td>
         <td>
@@ -1507,6 +2066,9 @@
           <button class="btn btn-secondary btn-sm" data-ready="${o.id}">Готов</button>
           <button class="btn btn-secondary btn-sm" data-issued="${o.id}">Выдать</button>
           <button class="btn btn-primary btn-sm" data-pay="${o.id}">Оплатить</button>
+          <button class="btn btn-secondary btn-sm" data-receipt="${o.id}">Чек</button>
+          <button class="btn btn-secondary btn-sm" data-invoice="${o.id}">Счёт</button>
+          <button class="btn btn-secondary btn-sm" data-qc="${o.id}">QC</button>
         </td>
       `;
       targetTbody.appendChild(tr);
@@ -1528,7 +2090,7 @@
         const issuedBody = table.querySelector('tbody');
         issued.forEach(o => {
           const tr = document.createElement('tr');
-          const itemsText = o.items.map(i => `${i.name} (${i.qty} шт.)`).join(', ');
+          const itemsText = (o.items || []).map(i => `${i.name} (${i.qty} шт.)`).join(', ');
           tr.innerHTML = `
             <td>${o.id}</td>
             <td>${o.datetime}</td>
@@ -1577,6 +2139,24 @@
         openOrderDetails(id);
       });
     });
+    tbody.querySelectorAll("button[data-receipt]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = parseInt(btn.getAttribute("data-receipt"), 10);
+        openReceipt(id);
+      });
+    });
+    tbody.querySelectorAll("button[data-qc]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = parseInt(btn.getAttribute("data-qc"), 10);
+        openQualityCheck(id);
+      });
+    });
+    tbody.querySelectorAll("button[data-invoice]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = parseInt(btn.getAttribute("data-invoice"), 10);
+        openInvoice(id);
+      });
+    });
   }
 
   function renderClientOrders(clientName) {
@@ -1586,7 +2166,7 @@
     const filtered = clientName ? orders.filter(o => o.customer === clientName) : orders;
     filtered.forEach(o => {
       const tr = document.createElement("tr");
-      const itemsText = o.items.map(i => `${i.name} (${i.qty})`).join(", ");
+      const itemsText = (o.items || []).map(i => `${i.name} (${i.qty})`).join(", ");
       tr.innerHTML = `
         <td>${o.id}</td>
         <td>${o.datetime}</td>
@@ -1621,9 +2201,9 @@
 
     const total = orders.length;
     const unpaidCount = orders.filter(o => !o.paid).length;
-    const sum = orders.reduce((s, o) => s + o.total, 0);
+    const sum = orders.reduce((s, o) => s + Number(o.total || 0), 0);
     const paidOrders = orders.filter(o => o.paid);
-    const paidSum = paidOrders.reduce((s, o) => s + o.total, 0);
+    const paidSum = paidOrders.reduce((s, o) => s + Number(o.total || 0), 0);
     const issuedCount = orders.filter(o => o.status === "Выдан").length;
     const lowStockCount = materials.filter(m => m.qty < m.minQty).length;
     // production queue length (scheduled or running)
@@ -1646,7 +2226,14 @@
     const tbody = document.getElementById("paymentsBody");
     if (!tbody) return;
     tbody.innerHTML = "";
-    payments.forEach(p => {
+    const list = getPaymentsView();
+    if (!list.length) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td colspan="4" style="text-align:center; color:#777;">Оплат нет</td>`;
+      tbody.appendChild(tr);
+      return;
+    }
+    list.forEach(p => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${p.datetime}</td>
@@ -1656,6 +2243,7 @@
       `;
       tbody.appendChild(tr);
     });
+    renderAuditLog();
   }
 
   // ==== ОТЧЁТЫ ====
@@ -1667,6 +2255,23 @@
       const paidOrders = orders.filter(o => o.paid);
       const paidRevenue = paidOrders.reduce((s, o) => s + o.total, 0);
       const issuedCount = orders.filter(o => o.status === "Выдан").length;
+      // прибыль по товарам
+      const profitMap = {};
+      orders.forEach(o => (o.items || []).forEach(i => {
+        const prod = PRODUCTS.find(p => p.name === i.name);
+        const cost = calcProductCost(prod) * (i.qty || 0);
+        const revenue = (i.price || 0) * (i.qty || 0);
+        if (!profitMap[i.name]) profitMap[i.name] = { qty: 0, revenue: 0, cost: 0 };
+        profitMap[i.name].qty += i.qty || 0;
+        profitMap[i.name].revenue += revenue;
+        profitMap[i.name].cost += cost;
+      }));
+      const profitRows = Object.entries(profitMap)
+        .map(([name, v]) => ({ name, margin: v.revenue - v.cost, qty: v.qty, revenue: v.revenue, cost: v.cost }))
+        .sort((a,b)=> b.margin - a.margin)
+        .slice(0,3)
+        .map(p => `<li>${p.name}: маржа ${formatMoney(p.margin)} (объём ${p.qty})</li>`)
+        .join("");
 
       fin.innerHTML = `
         <p><b>Всего заказов:</b> ${orders.length}</p>
@@ -1674,6 +2279,8 @@
         <p><b>Оплачено заказов:</b> ${paidOrders.length} на сумму ${formatMoney(paidRevenue)}</p>
         <p><b>Не оплачено заказов:</b> ${orders.length - paidOrders.length}</p>
         <p><b>Выдано заказов:</b> ${issuedCount}</p>
+        <p><b>Топ по марже:</b></p>
+        <ul>${profitRows || '<li>Недостаточно данных</li>'}</ul>
       `;
     }
     if (inv) {
@@ -1684,6 +2291,32 @@
         html += `<li>${m.name}: ${m.qty} кг (минимум ${m.minQty} кг)${warn}</li>`;
       });
       html += `</ul><p class="muted">Позиции ниже минимума: <b>${lowCount}</b></p>`;
+      // прогноз закупок по последним заказам (14 дней)
+      const cutoff = Date.now() - 14*24*3600*1000;
+      const consumption = {};
+      orders.forEach(o => {
+        const ts = new Date(o.datetime || Date.now()).getTime();
+        if (ts < cutoff) return;
+        (o.items || []).forEach(i => {
+          const prod = PRODUCTS.find(p => p.name === i.name);
+          if (!prod || !prod.recipe) return;
+          prod.recipe.forEach(r => {
+            if (!consumption[r.name]) consumption[r.name] = 0;
+            consumption[r.name] += (r.qtyPerUnit || 0) * (i.qty || 0);
+          });
+        });
+      });
+      const forecastList = Object.entries(consumption).map(([name, qty]) => {
+        const mat = materials.find(m => m.name === name);
+        const min = mat ? mat.minQty : 0;
+        const need = mat ? Math.max(0, min + qty - mat.qty) : qty;
+        return { name, qty: qty.toFixed(1), need };
+      }).filter(x => x.need > 0).slice(0,5);
+      if (forecastList.length) {
+        html += "<h4>Прогноз закупок (14д)</h4><ul>";
+        forecastList.forEach(f => { html += `<li>${f.name}: потребление ${f.qty} кг, заказать ~${f.need.toFixed(1)} кг</li>`; });
+        html += "</ul>";
+      }
       inv.innerHTML = html;
     }
     // render production queue panel
@@ -1698,13 +2331,60 @@
     // try server report
     try {
       const res = await fetch((window.ERP_API_BASE||'') + '/api/reports/schedule');
-      if (res.ok) list = await res.json();
+      if (!res.ok) throw new Error('schedule unavailable');
+      const body = await res.json();
+      if (Array.isArray(body)) list = body;
+      else if (body && Array.isArray(body.data)) list = body.data;
+      else if (body && Array.isArray(body.list)) list = body.list;
     } catch (e) {
       // fallback to local orders
-      list = orders.filter(o => o.production_scheduled_start || o.production_started_at || o.production_ends_at).map(o => ({ id: o.id, customer: o.customer, status: o.status, scheduled_start: o.production_scheduled_start || o.production_started_at || null, ends_at: o.production_ends_at || null }));
+      list = [];
     }
+
+    // merge in local info if API не дал ничего
+    if (!list.length) {
+      list = orders
+        .filter(o => o.production_scheduled_start || o.production_started_at || o.production_ends_at)
+        .map(o => ({
+          id: o.id,
+          customer: o.customer,
+          status: o.status,
+          scheduled_start: o.production_scheduled_start || o.production_started_at || null,
+          ends_at: o.production_ends_at || null,
+          reserved_qty: o.reserved_qty,
+          consumed_qty: o.consumed_qty
+        }));
+    }
+
+    // normalize fields for вывод
+    list = list.map(item => {
+      const scheduled = item.scheduled_start || item.scheduled_at || item.start_at || item.started_at || item.start || item.startTime;
+      const ends = item.ends_at || item.end_at || item.eta || item.finish_at || item.ends || item.finish || item.finishTime;
+      return {
+        id: item.id || item.order_id || item.orderId || '-',
+        customer: item.customer || item.client || item.client_name || item.customer_name || '',
+        status: item.status || item.state || '',
+        scheduled_start: scheduled || '',
+        ends_at: ends || '',
+        reserved_qty: item.reserved_qty || item.reservedQty || item.reserved || 0,
+        consumed_qty: item.consumed_qty || item.consumedQty || item.consumed || 0
+      };
+    });
+
     // sort by start time ascending
-    list.sort((a,b)=> new Date(a.scheduled_start || a.started_at || a.ends_at || 0) - new Date(b.scheduled_start || b.started_at || b.ends_at || 0));
+    list.sort((a,b)=> {
+      const aTs = a.scheduled_start ? new Date(a.scheduled_start).getTime() : (a.ends_at ? new Date(a.ends_at).getTime() : 0);
+      const bTs = b.scheduled_start ? new Date(b.scheduled_start).getTime() : (b.ends_at ? new Date(b.ends_at).getTime() : 0);
+      return aTs - bTs;
+    });
+
+    if (!list.length) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td colspan="9" style="text-align:center; color:#777;">Очередь пуста</td>`;
+      tbody.appendChild(tr);
+      renderProductionSlots(list);
+      return;
+    }
 
     list.forEach(o => {
       const now = new Date();
@@ -1742,6 +2422,7 @@
       });
     });
     renderProductionSlots(list);
+    renderShiftBoard();
   }
 
   function renderProductionSlots(list) {
@@ -1815,6 +2496,113 @@
     }, 1000);
   }
 
+  // ==== РАСПИСАНИЕ СМЕН ====
+  function ensureDefaultShifts(){
+    if (!Array.isArray(shiftAssignments) || !shiftAssignments.length) {
+      shiftAssignments = [
+        { id: 'shift-1', title: 'Смена 1', jobs: [] },
+        { id: 'shift-2', title: 'Смена 2', jobs: [] },
+        { id: 'oven-A', title: 'Печь A', jobs: [] }
+      ];
+    }
+  }
+
+  function getProductionJobsPool(){
+    // все заказы, которые не выданы
+    return orders
+      .filter(o => o.status !== 'Выдан')
+      .map(o => ({
+        id: o.id,
+        title: `#${o.id} ${o.customer}`,
+        status: o.status,
+        eta: o.production_ends_at || '',
+        items: (o.items || []).map(i => `${i.name} (${i.qty})`).join(', ')
+      }));
+  }
+
+  function assignJobToShift(shiftId, jobId){
+    ensureDefaultShifts();
+    shiftAssignments.forEach(s => {
+      s.jobs = (s.jobs || []).filter(j => j !== jobId);
+      if (s.id === shiftId) s.jobs.push(jobId);
+    });
+    renderShiftBoard();
+  }
+
+  function removeJobFromShift(jobId){
+    ensureDefaultShifts();
+    shiftAssignments.forEach(s => {
+      s.jobs = (s.jobs || []).filter(j => j !== jobId);
+    });
+    renderShiftBoard();
+  }
+
+  function renderShiftBoard(){
+    const board = document.getElementById('shiftBoard');
+    if (!board) return;
+    ensureDefaultShifts();
+    board.innerHTML = '';
+    const jobs = getProductionJobsPool();
+    // очистить неактуальные job ids
+    shiftAssignments.forEach(s => {
+      s.jobs = (s.jobs || []).filter(id => jobs.some(j => j.id === id));
+    });
+    const assigned = new Set(shiftAssignments.flatMap(s => s.jobs));
+    const pool = jobs.filter(j => !assigned.has(j.id));
+
+    const buildJobCard = (job) => {
+      const div = document.createElement('div');
+      div.className = 'shift-job';
+      div.draggable = true;
+      div.dataset.jobId = job.id;
+      div.innerHTML = `<b>#${job.id}</b> ${job.status}<small>${job.items}</small>${job.eta ? `<small>ETA: ${job.eta}</small>` : ''}`;
+      div.addEventListener('dragstart', (e)=>{ e.dataTransfer.setData('text/plain', job.id); });
+      return div;
+    };
+
+    const makeDropZone = (container, shiftId) => {
+      container.addEventListener('dragover', (e)=>{ e.preventDefault(); container.style.background = '#fce4ec'; });
+      container.addEventListener('dragleave', ()=>{ container.style.background = ''; });
+      container.addEventListener('drop', (e)=> {
+        e.preventDefault();
+        container.style.background = '';
+        const id = parseInt(e.dataTransfer.getData('text/plain'), 10);
+        if (!id) return;
+        if (shiftId === 'pool') removeJobFromShift(id);
+        else assignJobToShift(shiftId, id);
+      });
+    };
+
+    // пул свободных
+    const poolCol = document.createElement('div');
+    poolCol.className = 'shift-column';
+    poolCol.innerHTML = `<h5>Пул заданий</h5>`;
+    const poolBox = document.createElement('div');
+    poolBox.className = 'job-pool shift-drop';
+    pool.forEach(j => poolBox.appendChild(buildJobCard(j)));
+    makeDropZone(poolBox, 'pool');
+    poolCol.appendChild(poolBox);
+    board.appendChild(poolCol);
+
+    // смены
+    shiftAssignments.forEach(shift => {
+      const col = document.createElement('div');
+      col.className = 'shift-column';
+      const title = document.createElement('h5');
+      title.textContent = shift.title;
+      col.appendChild(title);
+      const box = document.createElement('div');
+      box.className = 'shift-drop';
+      (shift.jobs || []).forEach(id => {
+        const job = jobs.find(j => j.id === id);
+        if (job) box.appendChild(buildJobCard(job));
+      });
+      makeDropZone(box, shift.id);
+      col.appendChild(box);
+      board.appendChild(col);
+    });
+  }
+
   function formatCountdown(ms) {
     const s = Math.max(0, Math.floor(ms/1000));
     const hh = Math.floor(s/3600); const mm = Math.floor((s%3600)/60); const ss = s%60;
@@ -1826,7 +2614,8 @@
     try {
       const res = await fetch((window.ERP_API_BASE||'') + '/api/reports/schedule');
       if (!res.ok) throw new Error('no schedule');
-      const list = await res.json();
+      const body = await res.json();
+      let list = Array.isArray(body) ? body : (body && Array.isArray(body.data) ? body.data : (body && Array.isArray(body.list) ? body.list : []));
       // update local orders from schedule
       const now = new Date();
       // track completions to notify
@@ -1834,15 +2623,17 @@
       list.forEach(s => {
         const o = orders.find(x => x.id === s.id);
         if (o) {
-          o.production_scheduled_start = s.scheduled_start || o.production_scheduled_start;
-          o.production_started_at = s.started_at || o.production_started_at;
-          o.production_ends_at = s.ends_at || o.production_ends_at;
+          o.production_scheduled_start = s.scheduled_start || s.scheduled_at || o.production_scheduled_start;
+          o.production_started_at = s.started_at || s.start_at || o.production_started_at;
+          o.production_ends_at = s.ends_at || s.end_at || s.eta || o.production_ends_at;
           // status may arrive as Назначено/В производстве/Готов
           if (s.status) o.status = s.status;
         }
-        if (s.ends_at && new Date(s.ends_at) <= now) toComplete.push(s.id);
+        const end = s.ends_at || s.end_at || s.eta;
+        if (end && new Date(end) <= now) toComplete.push(s.id);
       });
       renderProductionQueue();
+      recomputeReadyProductsFromOrders();
       // auto-complete those past ETA and notify
       const notified = JSON.parse(localStorage.getItem('erp_notified_productions') || '[]');
       for (const id of toComplete) {
@@ -1887,7 +2678,7 @@
 
     const o1 = {
       id: 1,
-      customer: "Иванова А.А.",
+      customer: "Жусупекова С.С.",
       datetime: formatDateTime(new Date(Date.now() - 3600 * 1000 * 5)),
       items: [
         { name: "Торт «Наполеон»", qty: 1, price: 800 },
@@ -2049,6 +2840,7 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     applyThemeFromStorage();
+    document.body.classList.add("compact");
 
     renderCatalog();
     renderCart();
@@ -2061,6 +2853,10 @@
     renderPaymentsTable();
     refreshSummary();
     rebuildReports();
+    recomputeReadyProductsFromOrders();
+    renderReadyProducts();
+    renderShipments();
+    renderQcTable();
 
     // request notification permission for production complete events
     if (window.Notification && Notification.permission !== 'granted') {
@@ -2089,7 +2885,7 @@
         renderOrdersAdmin();
       });
     }
-        const catSel = document.getElementById("catalogCategoryFilter");
+    const catSel = document.getElementById("catalogCategoryFilter");
     const searchInput = document.getElementById("catalogSearchInput");
     if (catSel) {
       catSel.addEventListener("change", () => renderCatalog());
@@ -2097,16 +2893,8 @@
     if (searchInput) {
       searchInput.addEventListener("input", () => renderCatalog());
     }
-    document.getElementById("btnCartCheckout").addEventListener("click", () => {
-  if (!currentUser || currentUser.role !== "client") {
-    alert("Сначала войдите как клиент.");
-    return;
-  }
-  if (cartItems.length === 0) {
-    alert("Корзина пуста.");
-    return;
-  }
-       const btnCartClear = document.getElementById("btnCartClear");
+
+    const btnCartClear = document.getElementById("btnCartClear");
     if (btnCartClear) {
       btnCartClear.addEventListener("click", () => {
         if (cartItems.length === 0) {
@@ -2117,31 +2905,46 @@
         showToast("Корзина очищена", "info");
       });
     }
-  const cashRadio = document.getElementById("paymentMethodCash");
-  const cardRadio = document.getElementById("paymentMethodCard");
-  let method = "наличные";
-  if (cardRadio && cardRadio.checked) method = "карта";
 
-  console.debug('[UI] checkout click, cart snapshot:', cartItems);
-  const order = createOrderFromCart(currentUser.name, method, cartItems);
-  if (order) {
-    if (method === "карта") {
-      const last4 = prompt("Введите последние 4 цифры карты (для чека)", "1234");
-      const safe = (last4 || "").replace(/\D/g, "").slice(-4);
-      if (!safe) { alert("Нужно указать цифры карты для оплаты"); return; }
-      markOrderPaid(order.id, `карта ****${safe}`);
-      showToast("Заказ создан и оплачен № " + order.id, "success");
-    } else {
-      order.paymentMethod = "наличные";
-      order.paid = false;
-      showToast("Заказ создан. Оплата при получении. № " + order.id, "info");
-      renderClientOrders(currentUser ? currentUser.name : "");
-      renderOrdersAdmin();
-      refreshSummary();
-      rebuildReports();
-    }
-  }
-});
+    const applyPromoBtn = document.getElementById("applyPromoBtn");
+    if (applyPromoBtn) applyPromoBtn.addEventListener("click", () => applyPromo());
+    const resetPromoBtn = document.getElementById("resetPromoBtn");
+    if (resetPromoBtn) resetPromoBtn.addEventListener("click", () => resetPromo());
+
+    document.getElementById("btnCartCheckout").addEventListener("click", () => {
+      if (!currentUser || currentUser.role !== "client") {
+        alert("Сначала войдите как клиент.");
+        return;
+      }
+      if (cartItems.length === 0) {
+        alert("Корзина пуста.");
+        return;
+      }
+      const cashRadio = document.getElementById("paymentMethodCash");
+      const cardRadio = document.getElementById("paymentMethodCard");
+      let method = "наличные";
+      if (cardRadio && cardRadio.checked) method = "карта";
+
+      console.debug('[UI] checkout click, cart snapshot:', cartItems);
+      const order = createOrderFromCart(currentUser.name, method, cartItems);
+      if (order) {
+        if (method === "карта") {
+          const last4 = prompt("Введите последние 4 цифры карты (для чека)", "1234");
+          const safe = (last4 || "").replace(/\D/g, "").slice(-4);
+          if (!safe) { alert("Нужно указать цифры карты для оплаты"); return; }
+          markOrderPaid(order.id, `карта ****${safe}`);
+          showToast("Заказ создан и оплачен № " + order.id, "success");
+        } else {
+          order.paymentMethod = "наличные";
+          order.paid = false;
+          showToast("Заказ создан. Оплата при получении. № " + order.id, "info");
+          renderClientOrders(currentUser ? currentUser.name : "");
+          renderOrdersAdmin();
+          refreshSummary();
+          rebuildReports();
+        }
+      }
+    });
 
     const materialForm = document.getElementById("materialForm");
     materialForm.addEventListener("submit", e => {
@@ -2182,6 +2985,23 @@
         addSupplyDraft(supplierId, supplier ? supplier.name : "Поставщик", materialName, qty, unitCost);
         purchaseForm.reset();
         renderSupplierSelect();
+        logAction(`Закупка создана: ${materialName} ${qty} у ${supplier ? supplier.name : 'Поставщик'}`);
+      });
+    }
+
+    const shipmentForm = document.getElementById("shipmentForm");
+    if (shipmentForm) {
+      populateShipmentSelect();
+      shipmentForm.addEventListener("submit", e => {
+        e.preventDefault();
+        const client = document.getElementById("shipmentClient").value.trim();
+        const product = document.getElementById("shipmentProduct").value;
+        const qty = parseInt(document.getElementById("shipmentQty").value, 10) || 0;
+        const method = document.getElementById("shipmentMethod").value;
+        if (!product || qty <= 0) { alert("Укажите продукт и количество"); return; }
+        createShipment(client, product, qty, method);
+        shipmentForm.reset();
+        populateShipmentSelect();
       });
     }
 
@@ -2239,6 +3059,28 @@
       }
     }
 
+    const saveNotifyBtn = document.getElementById("saveNotifyBtn");
+    if (saveNotifyBtn) {
+      applyNotifyPrefsToUI();
+      saveNotifyBtn.addEventListener("click", () => {
+        saveNotifyPrefs();
+        try { localStorage.setItem('erp_notify_prefs', JSON.stringify(notifyPrefs)); } catch(e){}
+      });
+      document.getElementById("notifyPush")?.addEventListener("change", (e) => {
+        if (e.target.checked && window.Notification && Notification.permission !== 'granted') {
+          try { Notification.requestPermission().then(()=>{}); } catch(err){}
+        }
+      });
+      // восстановление prefs из localStorage (дополнительно к storage.js)
+      try {
+        const raw = localStorage.getItem('erp_notify_prefs');
+        if (raw) notifyPrefs = JSON.parse(raw);
+        applyNotifyPrefsToUI();
+      } catch(e){}
+    }
+    const exportAccBtn = document.getElementById("exportAccountingBtn");
+    if (exportAccBtn) exportAccBtn.addEventListener("click", exportAccounting);
+
     // Export / Import state buttons
     const exportBtn = document.getElementById('exportStateBtn');
     const importFile = document.getElementById('importStateFile');
@@ -2289,6 +3131,14 @@
         importFile.value = '';
       });
     }
+
+    // periodic backup
+    setInterval(() => {
+      try {
+        if (window.erpStorage && window.erpStorage.saveState) window.erpStorage.saveState();
+        localStorage.setItem('erp_backup_ts', new Date().toISOString());
+      } catch(e){}
+    }, 60000);
   });
 </script>
 
