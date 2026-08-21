@@ -1,7 +1,7 @@
 // Простые полезные функции
 
 function formatMoney(value) {
-  return value.toFixed(2) + " сом";
+  return "сумма скрыта";
 }
 
 function formatDateTime(date = new Date()) {

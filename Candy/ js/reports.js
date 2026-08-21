@@ -1,4 +1,4 @@
-// Отчёты (выручка + склад)
+// Отчёты (отчеты и склад)
 
 let revenueChartInstance = null;
 
@@ -10,7 +10,7 @@ function buildFinanceReport() {
   const paidRevenue = orders.filter(o => o.paid).reduce((s, o) => s + o.total, 0);
 
   container.innerHTML = `
-    <p><b>Общая сумма заказов:</b> ${formatMoney(totalRevenue)}</p>
+    <p><b>Общий итог заказов:</b> ${formatMoney(totalRevenue)}</p>
     <p><b>Оплачено:</b> ${formatMoney(paidRevenue)}</p>
     <p><b>Не оплачено:</b> ${formatMoney(totalRevenue - paidRevenue)}</p>
   `;
@@ -31,7 +31,7 @@ function buildFinanceReport() {
     data: {
       labels,
       datasets: [{
-        label: "Сумма заказа (сом)",
+        label: "Сумма заказа",
         data
       }]
     },
